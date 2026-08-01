@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Ingresos | Piso de Tienda</title>
+    <!-- Cargamos una fuente moderna y minimalista de Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ==========================================
+           VARIABLES DE COLOR (Look & Feel Mirna)
+           ========================================== */
+        :root {
+            --primary-blue: #0056b3;     /* Azul fuerte corporativo */
+            --soft-blue: #e8f4fc;        /* Fondo azul muy suave para botones/hover */
+            --border-blue: #cce0f5;      /* Línea azul suave para el marco de fotos */
+            --text-dark: #2d3436;        /* Texto principal */
+            --text-gray: #636e72;        /* Texto secundario (descripciones) */
+            --bg-page: #f4f7f6;          /* Fondo de la web */
+            --bg-white: #ffffff;         /* Fondo inmaculado para tarjetas y hoja A4 */
+            --accent-red: #d63031;       /* Para destacar el precio y observaciones */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        /* ==========================================
+           CABECERA WEB (Se oculta al imprimir)
+           ========================================== */
+        .web-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px 20px;
+            background-color: var(--bg-white);
+            border-bottom: 1px solid #dfe6e9;
+            margin-bottom: 30px;
+        }
+
+        .web-header h1 {
+            font-weight: 600;
+            font-size: 24px;
+            color: var(--primary-blue);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+
+        .controls-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px; 
+            margin-bottom: 40px;
+        }
+
+        .btn-main {
+            background-color: var(--primary-blue);
+            color: white;
+            border: 2px solid var(--primary-blue);
+            padding: 14px 40px;
+            border-radius: 50px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 86, 179, 0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .btn-main:hover { background-color: #004494; transform: translateY(-2px); }
+        .btn-main.active { background-color: #003370; border-color: #003370; transform: none; }
+
+        .btn-sync {
+            background-color: white;
+            color: var(--primary-blue);
+            border: 2px solid var(--border-blue);
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .btn-sync:hover { background-color: var(--soft-blue); border-color: var(--primary-blue); }
+
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .cat-btn {
+            background-color: var(--bg-white);
+            color: var(--text-gray);
+            border: 1px solid #dfe6e9;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .cat-btn:hover { background-color: var(--soft-blue); color: var(--primary-blue); border-color: var(--border-blue); }
+        .cat-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+
+        /* ==========================================
+           HOJA A4 (Simulación visual y para PDF)
+           ========================================== */
+        .a4-sheet {
+            max-width: 210mm; /* Ancho exacto de A4 */
+            margin: 0 auto;
+            background-color: var(--bg-white);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            min-height: 297mm;
+            /* Nuevos ajustes para que el fondo se vea perfecto */
+            background-size: cover;
+            background-position: top center;
+            background-repeat: no-repeat;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Imágenes de cabecera y pie de página para el PDF */
+        .catalog-header-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            /* Placeholder con color fuerte para que lo notes enseguida */
+            background-color: var(--primary-blue);
+        }
+        
+        .catalog-footer-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin-top: auto; /* Empuja el footer al fondo de la hoja */
+            /* Placeholder oscuro para notarlo */
+            background-color: var(--text-dark);
+        }
+
+        .catalog-container {
+            padding: 30px 40px; /* Margen interno de la hoja */
+            flex-grow: 1; /* Permite que el contenedor central ocupe el espacio disponible */
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3 columnas encajan perfecto en A4 */
+            gap: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            .a4-sheet { max-width: 100%; }
+        }
+        @media (max-width: 480px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        /* ==========================================
+           TARJETAS DE PRODUCTO (Nuevo Orden)
+           ========================================== */
+        .product-card {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04); 
+            border: 1px solid #f1f2f6;
+            display: flex;
+            flex-direction: column;
+            page-break-inside: avoid; /* IMPORTANTE: Evita que se corte a la mitad de hoja al imprimir */
+        }
+
+        .photo-frame {
+            width: 100%;
+            aspect-ratio: 1 / 1; /* NUEVO: Fuerza a que el marco sea siempre un cuadrado perfecto */
+            height: auto; /* Quitamos la altura fija */
+            border: 2px solid var(--primary-blue);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 15px;
+            background-color: #ffffff; /* Fondo 100% blanco para que se fusione con tus fotos */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .photo-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* NUEVO: Asegura que la foto se vea COMPLETA sin recortes */
+            border-radius: 4px;
+        }
+
+        .product-info {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            padding: 0 2px;
+        }
+
+        .product-category {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--primary-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .product-sku {
+            font-size: 11px;
+            font-weight: 600;
+            color: #b2bec3; /* Gris sutil */
+            margin-bottom: 8px;
+        }
+
+        .product-title {
+            font-size: 15px;
+            font-weight: 700; /* Negrita grande */
+            color: var(--text-dark);
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
+
+        .product-desc {
+            font-size: 12px;
+            color: var(--text-gray);
+            margin-bottom: 10px;
+            line-height: 1.4;
+            flex-grow: 1;
+        }
+        
+        .product-obs {
+            font-size: 12px;
+            color: var(--accent-red);
+            margin-bottom: 10px;
+            font-weight: 500;
+            background-color: #fff5f5;
+            padding: 6px;
+            border-radius: 4px;
+            border-left: 3px solid var(--accent-red);
+        }
+
+        .product-price {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-red);
+            border-top: 1px dashed #dfe6e9;
+            padding-top: 12px;
+            margin-top: auto;
+        }
+
+        .status-message {
+            text-align: center;
+            grid-column: 1 / -1;
+            padding: 40px;
+            color: var(--text-gray);
+            font-size: 16px;
+        }
+
+        /* ==========================================
+           MAGIA DE IMPRESIÓN (PDF)
+           ========================================== */
+        @media print {
+            body { background-color: white; }
+            .web-header, .controls-wrapper { 
+                display: none !important; /* Esconde la web, botones y filtros */
+            }
+            .a4-sheet {
+                box-shadow: none; /* Quita sombras */
+                max-width: 100%;
+                width: 100%;
+                margin: 0;
+            }
+            @page {
+                size: A4;
+                margin: 0mm; /* Elimina márgenes del navegador para que llene la hoja */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- CABECERA DE LA WEB (No sale en el PDF) -->
+    <header class="web-header">
+        <div class="logo-container">
+            <img src="http://googleusercontent.com/image_collection/image_retrieval/8490127715225572213_0" alt="Almacenes Mirna Logo" onerror="this.src='https://via.placeholder.com/250x80/ffffff/0056b3?text=ALMACENES+MIRNA'">
+        </div>
+        <h1>Nuevos Ingresos</h1>
+    </header>
+
+    <!-- CONTROLES (No salen en el PDF) -->
+    <div class="controls-wrapper">
+        <button id="btnStartCatalog" class="btn-main" onclick="showCompleteCatalog()">
+            Iniciar catálogo completo
+        </button>
+        
+        <button class="btn-sync" onclick="loadData()">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+            </svg>
+            <span id="syncText">Actualizar base</span>
+        </button>
+        
+        <div class="categories" id="categoryContainer"></div>
+    </div>
+
+    <!-- HOJA A4 (Esto es lo que se convierte en PDF) -->
+    <div class="a4-sheet" id="a4Sheet">
+        <!-- MARCADOR DE CABECERA VISIBLE (Azul fuerte) -->
+        <img id="catalogHeader" src="cabecera_local.jpg" class="catalog-header-img" alt="Cabecera Catálogo" onerror="this.src='https://placehold.co/2480x350/0056b3/ffffff?text=Tu+Banner+de+Cabecera+(2480x350+px)'">
+        
+        <div class="catalog-container">
+            <div class="grid" id="productGrid">
+                <div class="status-message">Bienvenido. Haz clic en "Iniciar catálogo completo" para comenzar.</div>
+            </div>
+        </div>
+
+        <!-- MARCADOR DE PIE DE PÁGINA VISIBLE (Gris oscuro) -->
+        <img id="catalogFooter" src="pie_local.jpg" class="catalog-footer-img" alt="Pie de Página" onerror="this.src='https://placehold.co/2480x200/2d3436/ffffff?text=Tu+Banner+Pie+de+Pagina+(2480x200+px)'">
+    </div>
+
+    <!-- SCRIPT DE LÓGICA -->
+    <script>
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSxFbafMVZW4D1uok55e5sZyTcuWIXxDMFHoQuknZeE77l29zWbHmc6CtWps7CKmmAWgfP0maKRIB9e/pub?output=tsv'; 
+        
+        let allProducts = [];
+        let categorySettings = {}; // Aquí guardaremos los diseños de cada categoría
+
+        function showCompleteCatalog() {
+            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btnStartCatalog').classList.add('active');
+
+            if(allProducts.length === 0) {
+                loadData(true);
+            } else {
+                applyTheme('general'); // Aplica tema por defecto al ver todo
+                renderProducts(allProducts);
+            }
+        }
+
+        async function loadData(fromStartButton = false) {
+            const btnText = document.getElementById('syncText');
+            btnText.innerText = "Descargando datos...";
+            
+            try {
+                // NOTA: Cambiamos ? por & para que la URL sea válida
+                const cacheBuster = `&v=${new Date().getTime()}`;
+                const response = await fetch(SHEET_URL + cacheBuster);
+                
+                if (!response.ok) throw new Error("No se pudo leer el archivo");
+                
+                const data = await response.text();
+                parseTSV(data);
+                
+                btnText.innerText = "Base actualizada ✓";
+                
+                if(fromStartButton || document.getElementById('btnStartCatalog').classList.contains('active')) {
+                    renderProducts(allProducts);
+                } else {
+                    // Si ya estabas en una categoría (ej. Bicicletas) y le das a actualizar, te deja ahí
+                    const activeFilterBtn = document.querySelector('.cat-btn.active');
+                    if(activeFilterBtn) {
+                        filterCategory(activeFilterBtn.innerText, activeFilterBtn);
+                    }
+                }
+                
+                setTimeout(() => { btnText.innerText = "Actualizar base"; }, 3000);
+
+            } catch (error) {
+                console.error("Error:", error);
+                btnText.innerText = "Error de conexión";
+                document.getElementById('productGrid').innerHTML = `
+                    <div class="status-message" style="color:var(--accent-red);">
+                        <b>⚠️ Error al conectar con Google Sheets.</b><br>
+                        <span style="font-size: 13px; color: #636e72;">${error.message}</span>
+                    </div>`;
+                setTimeout(() => { btnText.innerText = "Actualizar base"; }, 3000);
+            }
+        }
+
+        function parseTSV(data) {
+            const rows = data.split('\n');
+            allProducts = [];
+            const categories = new Set();
+            categorySettings = {}; // Reiniciamos los ajustes
+            
+            for(let i = 1; i < rows.length; i++) {
+                const cols = rows[i].split('\t');
+                
+                // Mapeamos a partir de la columna B (índice 1). Saltamos A (índice 0).
+                if(cols.length >= 4 && cols[1] !== undefined && cols[1].trim() !== "") {
+                    const product = {
+                        image: cols[1] ? cols[1].trim() : '',       // B: LINK IMGUR
+                        category: cols[2] ? cols[2].trim() : '',    // C: CATEGORÍA
+                        title: cols[3] ? cols[3].trim() : '',       // D: TÍTULO
+                        desc: cols[4] ? cols[4].trim() : '',        // E: DESCRIPCIÓN
+                        obs: cols[5] ? cols[5].trim() : '',         // F: OBSERVACIÓN
+                        price: cols[6] ? cols[6].trim() : '',       // G: VALOR DE VENTA
+                        sku: cols[7] ? cols[7].trim() : ''          // H: SKU
+                    };
+                    allProducts.push(product);
+                    categories.add(product.category);
+
+                    // Guardamos los links de diseño (Columnas I=8, J=9, K=10)
+                    if (product.category && !categorySettings[product.category]) {
+                        // Solo guardamos si hay un link, así no reescribimos con celdas vacías
+                        if ((cols[8] && cols[8].trim()) || (cols[9] && cols[9].trim()) || (cols[10] && cols[10].trim())) {
+                            categorySettings[product.category] = {
+                                header: cols[8] ? cols[8].trim() : '',
+                                footer: cols[9] ? cols[9].trim() : '',
+                                bg: cols[10] ? cols[10].trim() : ''
+                            };
+                        }
+                    }
+                }
+            }
+            
+            renderCategories(Array.from(categories));
+        }
+
+        function applyTheme(category) {
+            const sheet = document.getElementById('a4Sheet');
+            const header = document.getElementById('catalogHeader');
+            const footer = document.getElementById('catalogFooter');
+
+            // Imágenes por defecto si la categoría no tiene un diseño asignado
+            let headerSrc = 'cabecera_local.jpg';
+            let footerSrc = 'pie_local.jpg';
+            let bgImg = 'none';
+
+            // Si la categoría tiene ajustes en el Excel, los usamos
+            if (category !== 'general' && categorySettings[category]) {
+                if (categorySettings[category].header) headerSrc = categorySettings[category].header;
+                if (categorySettings[category].footer) footerSrc = categorySettings[category].footer;
+                if (categorySettings[category].bg) bgImg = `url('${categorySettings[category].bg}')`;
+            }
+
+            // Aplicamos los cambios al HTML
+            header.src = headerSrc;
+            footer.src = footerSrc;
+            sheet.style.backgroundImage = bgImg;
+            
+            // Forzar recarga de fallbacks visuales grandes (azul/gris) si fallan
+            header.onerror = function() { this.src='https://placehold.co/2480x350/0056b3/ffffff?text=Tu+Banner+de+Cabecera+(2480x350+px)'; };
+            footer.onerror = function() { this.src='https://placehold.co/2480x200/2d3436/ffffff?text=Tu+Banner+Pie+de+Pagina+(2480x200+px)'; };
+        }
+
+        function renderCategories(categories) {
+            const container = document.getElementById('categoryContainer');
+            const activeCategoryNode = document.querySelector('.cat-btn.active');
+            const activeCategoryText = activeCategoryNode ? activeCategoryNode.innerText : null;
+
+            container.innerHTML = ''; 
+            categories.filter(c => c !== "").sort().forEach(cat => {
+                const isActiveClass = (cat === activeCategoryText) ? 'active' : '';
+                container.innerHTML += `<button class="cat-btn ${isActiveClass}" onclick="filterCategory('${cat}', this)">${cat}</button>`;
+            });
+        }
+
+        function filterCategory(category, btnElement) {
+            document.getElementById('btnStartCatalog').classList.remove('active');
+            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
+            
+            applyTheme(category); // <--- APLICAMOS EL DISEÑO DE LA CATEGORÍA AQUÍ
+
+            const filtered = allProducts.filter(p => p.category === category);
+            renderProducts(filtered);
+        }
+
+        function renderProducts(products) {
+            const grid = document.getElementById('productGrid');
+            grid.innerHTML = '';
+            
+            if(products.length === 0) {
+                grid.innerHTML = '<div class="status-message">No hay productos disponibles.</div>';
+                return;
+            }
+
+            products.forEach(p => {
+                // AQUÍ ESTÁ LA LÓGICA CONDICIONAL. 
+                // Solo se genera la etiqueta HTML si la columna tiene texto.
+                const categoryHTML = p.category ? `<div class="product-category">${p.category}</div>` : '';
+                const skuHTML = p.sku ? `<div class="product-sku">SKU: ${p.sku}</div>` : '';
+                const titleHTML = p.title ? `<div class="product-title">${p.title}</div>` : '';
+                const descHTML = p.desc ? `<div class="product-desc">${p.desc}</div>` : '';
+                const obsHTML = p.obs ? `<div class="product-obs">📌 ${p.obs}</div>` : '';
+                const priceHTML = p.price ? `<div class="product-price">$${p.price}</div>` : '';
+                
+                // Aplicamos el orden exacto solicitado inyectando solo lo que existe
+                grid.innerHTML += `
+                    <div class="product-card">
+                        <div class="photo-frame">
+                            <img src="${p.image}" alt="Producto" onerror="this.src='https://placehold.co/300x300/f1f2f6/a4b0be?text=Sin+Imagen'">
+                        </div>
+                        <div class="product-info">
+                            ${categoryHTML}
+                            ${skuHTML}
+                            ${titleHTML}
+                            ${descHTML}
+                            ${obsHTML}
+                            ${priceHTML}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
