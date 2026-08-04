@@ -9,9 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* ==========================================
-           VARIABLES DE COLOR (Look & Feel)
-           ========================================== */
         :root {
             --primary-blue: #0056b3;     
             --soft-blue: #e8f4fc;        
@@ -37,7 +34,6 @@
             max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 40px;
         }
 
-        /* Botones principales de la vista pública */
         .btn-main {
             background-color: var(--primary-blue); color: white; border: 2px solid var(--primary-blue);
             padding: 14px 40px; border-radius: 50px; font-family: 'Poppins', sans-serif; font-size: 16px; font-weight: 600;
@@ -53,7 +49,6 @@
         }
         .btn-sync:hover { background-color: var(--soft-blue); border-color: var(--primary-blue); }
 
-        /* Categorías */
         .categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 10px; width: 100%; }
         .cat-btn {
             background-color: var(--bg-white); color: var(--text-gray); border: 1px solid #dfe6e9;
@@ -63,9 +58,6 @@
         .cat-btn:hover { background-color: var(--soft-blue); color: var(--primary-blue); border-color: var(--border-blue); }
         .cat-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); }
 
-        /* ==========================================
-           PANEL DE ADMINISTRADOR (Controles Backend)
-           ========================================== */
         .admin-panel {
             width: 100%; max-width: 600px; background-color: white; border: 2px dashed var(--admin-purple);
             border-radius: 12px; padding: 20px; margin-top: 20px; display: none; flex-direction: column; gap: 15px;
@@ -90,9 +82,6 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* ==========================================
-           TARJETAS Y HOJA A4
-           ========================================== */
         .a4-sheet {
             max-width: 210mm; margin: 0 auto; background-color: var(--bg-white); box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             min-height: 297mm; background-size: cover; background-position: top center; background-repeat: no-repeat;
@@ -121,7 +110,13 @@
         .product-title { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px; line-height: 1.2; }
         .product-desc { font-size: 12px; color: var(--text-gray); margin-bottom: 10px; line-height: 1.4; flex-grow: 1; }
         .product-obs { font-size: 12px; color: var(--accent-red); margin-bottom: 10px; font-weight: 500; background-color: #fff5f5; padding: 6px; border-radius: 4px; border-left: 3px solid var(--accent-red); }
-        .product-price { font-size: 18px; font-weight: 700; color: var(--accent-red); border-top: 1px dashed #dfe6e9; padding-top: 12px; margin-top: auto; }
+        
+        /* NUEVO: ESTILO PARA LA CANTIDAD POR BULTO */
+        .product-bulto { 
+            font-size: 13px; font-weight: 600; color: var(--primary-blue); background-color: var(--soft-blue); 
+            padding: 6px 10px; border-radius: 4px; margin-top: auto; border-left: 3px solid var(--primary-blue); 
+        }
+
         .status-message { text-align: center; grid-column: 1 / -1; padding: 40px; color: var(--text-gray); font-size: 16px; }
 
         @media print {
@@ -144,7 +139,6 @@
     <div class="controls-wrapper">
         <button id="btnStartCatalog" class="btn-main" onclick="showCompleteCatalog()">Iniciar catálogo completo</button>
         
-        <!-- Botón para actualizar el renderizado visual y botón para mostrar el Backend -->
         <div style="display: flex; gap: 10px; width: 100%; max-width: 400px;">
             <button class="btn-sync" onclick="loadData()" style="flex: 2;">
                 <span id="syncText">Actualizar vista</span>
@@ -154,13 +148,12 @@
             </button>
         </div>
 
-        <!-- PANEL DE ADMINISTRADOR -->
         <div class="admin-panel" id="adminPanel">
             <div class="admin-title">Panel de Sincronización Backend</div>
             <div class="admin-buttons">
                 <button class="btn-admin" onclick="triggerBackend('automatizarConversionExcel', 'Convirtiendo archivos de Excel a formato Google...')">1. Convertir Excels</button>
                 <button class="btn-admin" onclick="triggerBackend('procesarFotosDriveAImgBB', 'Subiendo fotos faltantes (Puede tomar minutos)...')">2. Procesar Fotos a Links</button>
-                <button class="btn-admin" onclick="triggerBackend('ejecutarReporteManual', 'Generando el reporte en la Base Final...')">3. Actualizar Reporte</button>
+                <button class="btn-admin" onclick="triggerBackend('ejecutarReporteManual', 'Generando el reporte en la Base Final y haciendo el barrido de datos...')">3. Actualizar Reporte</button>
             </div>
             <button class="btn-admin-master" onclick="triggerBackend('ejecutarSincronizacionTotal', 'Iniciando ciclo maestro (Excels -> Fotos -> Reporte)...')">⚡ Ejecutar Sincronización Total</button>
             <div class="admin-status" id="adminStatus">Esperando instrucciones...</div>
@@ -184,42 +177,43 @@
         let allProducts = [];
         let categorySettings = {}; 
 
-        // ==========================================
-        // LÓGICA DEL PANEL DE ADMINISTRACIÓN
-        // ==========================================
         function toggleAdminPanel() {
             const panel = document.getElementById('adminPanel');
-            panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
+            if (panel.style.display === 'flex') {
+                panel.style.display = 'none';
+                return;
+            }
+            const password = prompt("Seguridad Mirna: Ingresa la clave de administrador para acceder a los controles.");
+            if (password === "Catalago123") {
+                panel.style.display = 'flex';
+            } else if (password !== null) { 
+                alert("Clave incorrecta. Acceso denegado.");
+            }
         }
 
         function triggerBackend(functionName, loadingMessage) {
             const statusDiv = document.getElementById('adminStatus');
             statusDiv.innerHTML = `⏳ <b>Procesando:</b> ${loadingMessage}`;
             
-            // Verificamos si la web está corriendo dentro del entorno de Google Apps Script
             if (typeof google !== 'undefined' && google.script) {
-                // Deshabilitar botones para evitar clics dobles
                 document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = true);
                 
                 google.script.run
                     .withSuccessHandler(function(response) {
                         statusDiv.innerHTML = `✅ <b>¡Éxito!</b> Tarea completada. Actualizando tu vista...`;
                         document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = false);
-                        loadData(); // Refresca las tarjetas visuales
+                        loadData(); 
                     })
                     .withFailureHandler(function(error) {
                         statusDiv.innerHTML = `❌ <b>Error:</b> ${error.message} (Intenta nuevamente)`;
                         document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = false);
                     })
-                    [functionName](); // Llama a la función solicitada
+                    [functionName](); 
             } else {
                 statusDiv.innerHTML = `⚠️ <b>Error de Entorno:</b> La web debe estar desplegada como una 'Aplicación Web' de Google para ejecutar estas funciones.`;
             }
         }
 
-        // ==========================================
-        // LÓGICA DE RENDERIZADO DEL CATÁLOGO 
-        // ==========================================
         function showCompleteCatalog() {
             document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('btnStartCatalog').classList.add('active');
@@ -271,7 +265,7 @@
                         title: cols[3] ? cols[3].trim() : '',       
                         desc: cols[4] ? cols[4].trim() : '',        
                         obs: cols[5] ? cols[5].trim() : '',         
-                        price: cols[6] ? cols[6].trim() : '',       
+                        cantidadBulto: cols[6] ? cols[6].trim() : '', // Extraemos la Cantidad por Bulto de la Columna G       
                         sku: cols[7] ? cols[7].trim() : ''          
                     };
                     allProducts.push(product);
@@ -346,7 +340,8 @@
                 const titleHTML = p.title ? `<div class="product-title">${p.title}</div>` : '';
                 const descHTML = p.desc ? `<div class="product-desc">${p.desc}</div>` : '';
                 const obsHTML = p.obs ? `<div class="product-obs">📌 ${p.obs}</div>` : '';
-                const priceHTML = p.price ? `<div class="product-price">$${p.price}</div>` : '';
+                // Aquí usamos la variable que extrajimos en la función parseTSV
+                const bultoHTML = p.cantidadBulto ? `<div class="product-bulto">📦 Bulto: ${p.cantidadBulto} u.</div>` : '';
                 
                 grid.innerHTML += `
                     <div class="product-card">
@@ -359,7 +354,7 @@
                             ${titleHTML}
                             ${descHTML}
                             ${obsHTML}
-                            ${priceHTML}
+                            ${bultoHTML}
                         </div>
                     </div>
                 `;
