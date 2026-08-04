@@ -29,7 +29,7 @@
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-page); color: var(--text-dark); line-height: 1.6; }
 
         /* ==========================================
-           CABECERA & BOTÓN ADMIN (NUEVO DISEÑO)
+           CABECERA & BOTÓN ADMIN
            ========================================== */
         .web-header {
             display: flex;
@@ -42,7 +42,6 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         }
 
-        /* Espaciador invisible para centrar el logo perfectamente */
         .header-spacer { width: 45px; } 
 
         .logo-center {
@@ -89,7 +88,7 @@
         .tab-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); box-shadow: 0 4px 10px rgba(128,30,30,0.25); }
 
         /* 2. Nivel Medio: Píldoras de Filtro */
-        .categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; margin-bottom: 20px; min-height: 40px; }
+        .categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; margin-bottom: 10px; min-height: 40px; }
         .cat-btn {
             background-color: var(--bg-white); color: var(--text-gray); border: 1px solid #dfe6e9;
             padding: 8px 18px; border-radius: 20px; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 500;
@@ -97,6 +96,19 @@
         }
         .cat-btn:hover { background-color: var(--soft-blue); color: var(--primary-blue); border-color: var(--border-blue); }
         .cat-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+
+        /* BUSCADOR */
+        .search-container {
+            width: 100%; max-width: 500px;
+            margin-bottom: 20px;
+        }
+        .search-input {
+            width: 100%; padding: 12px 20px; border: 2px solid #dfe6e9;
+            border-radius: 30px; font-family: 'Poppins', sans-serif; font-size: 14px;
+            outline: none; transition: all 0.2s ease; text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .search-input:focus { border-color: var(--primary-blue); box-shadow: 0 4px 10px rgba(128,30,30,0.1); }
 
         /* 3. Nivel Inferior: Botonera de Acciones */
         .action-bar {
@@ -213,16 +225,14 @@
 </head>
 <body>
 
-    <!-- CABECERA REDISEÑADA CON BOTÓN ADMIN -->
     <header class="web-header">
-        <div class="header-spacer"></div> <!-- Truco para mantener centrado el logo -->
+        <div class="header-spacer"></div> 
         
         <div class="logo-center">
             <img src="http://googleusercontent.com/image_collection/image_retrieval/8490127715225572213_0" alt="Logo" onerror="this.src='https://via.placeholder.com/250x80/ffffff/801e1e?text=LOGO'">
             <h1>Nuevos Ingresos</h1>
         </div>
         
-        <!-- Botón de ajustes oculto en la esquina superior derecha -->
         <button class="btn-admin-top" onclick="openAdminModal()" title="Configuración de Sistema">
             ⚙️
         </button>
@@ -230,17 +240,19 @@
 
     <div class="controls-wrapper">
         
-        <!-- 1. PESTAÑAS PRINCIPALES -->
         <div class="filter-tabs" id="filterTabs">
             <button id="btnModeGeneral" class="tab-btn active" onclick="switchMode('general')">Catálogo Completo</button>
             <button id="btnModeCategoria" class="tab-btn" onclick="switchMode('categoria')">Filtrar por Categoría</button>
             <button id="btnModeArchivo" class="tab-btn" onclick="switchMode('archivo')">Filtrar por Archivo</button>
         </div>
 
-        <!-- 2. CONTENEDOR DE OPCIONES (SE LLENA DINÁMICAMENTE) -->
         <div class="categories" id="filterContainer"></div>
         
-        <!-- 3. BARRA DE ACCIONES FINALES -->
+        <!-- NUEVO: BUSCADOR GLOBAL -->
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar por código o palabra clave..." oninput="performSearch()">
+        </div>
+
         <div class="action-bar">
             <button class="btn-action primary" onclick="loadAdminData()">
                 <span id="syncText">🔄 Refrescar Datos</span>
@@ -253,7 +265,6 @@
             </button>
         </div>
 
-        <!-- PANEL DE ESTADO ADMIN (Oculto por defecto) -->
         <div class="admin-panel" id="adminPanel">
             <div class="admin-title">Panel de Sincronización Interna</div>
             <div class="admin-buttons">
@@ -266,7 +277,6 @@
         </div>
     </div>
 
-    <!-- EL CATÁLOGO (HOJA A4) -->
     <div class="a4-sheet" id="a4Sheet">
         <img id="catalogHeader" src="cabecera_local.jpg" class="catalog-header-img" alt="Cabecera" onerror="this.src='https://placehold.co/2480x350/801e1e/ffffff?text=Banner+Cabecera'">
         <div class="catalog-container">
@@ -277,7 +287,6 @@
         <img id="catalogFooter" src="pie_local.jpg" class="catalog-footer-img" alt="Pie" onerror="this.src='https://placehold.co/2480x200/2d3436/ffffff?text=Banner+Pie+de+Pagina'">
     </div>
 
-    <!-- MODAL (POP-UP) DE SEGURIDAD VIP -->
     <div class="modal-overlay" id="securityModal">
         <div class="modal-content">
             <h3>🔒 Área Restringida</h3>
@@ -325,12 +334,12 @@
         }
 
         // ==========================================
-        // LÓGICA DEL MODAL DE SEGURIDAD (UI MEJORADA)
+        // LÓGICA DEL MODAL DE SEGURIDAD
         // ==========================================
         function openAdminModal() {
             const panel = document.getElementById('adminPanel');
             if (panel.style.display === 'flex') {
-                panel.style.display = 'none'; // Si ya está abierto, lo cierra
+                panel.style.display = 'none'; 
                 return;
             }
             document.getElementById('securityModal').style.display = 'flex';
@@ -347,7 +356,6 @@
             if (pass === "Catalago123") {
                 closeAdminModal();
                 document.getElementById('adminPanel').style.display = 'flex';
-                // Hace scroll automático hacia abajo para ver el panel
                 document.getElementById('adminPanel').scrollIntoView({ behavior: 'smooth' });
             } else {
                 alert("❌ Clave incorrecta. Inténtalo de nuevo.");
@@ -355,11 +363,40 @@
             }
         }
 
-        // Permite presionar Enter en el teclado para entrar
         document.getElementById('adminPasswordInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') verifyAdmin();
         });
 
+        // ==========================================
+        // FUNCIONES DE BÚSQUEDA EN TIEMPO REAL
+        // ==========================================
+        function performSearch() {
+            const term = document.getElementById('searchInput').value.trim().toLowerCase();
+            
+            if (term === '') {
+                // Si borran el buscador, regresamos a lo que estaban viendo antes
+                if (currentFilterValue !== '') {
+                    const typeToApply = currentMode === 'categoria' ? 'category' : 'file';
+                    applyFilter(typeToApply, currentFilterValue, null);
+                } else {
+                    switchMode(currentMode);
+                }
+                return;
+            }
+
+            // Desmarcar todas las pestañas y filtros visualmente mientras se busca
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#filterContainer .cat-btn').forEach(b => b.classList.remove('active'));
+            
+            // Buscar coincidencias en Título (Col D) y SKU (Col H)
+            const filtered = allProducts.filter(p => 
+                p.sku.toLowerCase().includes(term) || 
+                p.title.toLowerCase().includes(term)
+            );
+            
+            applyTheme('general'); // Tema neutro para los resultados de búsqueda
+            renderProducts(filtered);
+        }
 
         // ==========================================
         // FUNCIONES DE DESCARGA DE DATOS
@@ -395,11 +432,15 @@
             
             if(success) {
                 if(btnText) btnText.innerHTML = "🔄 Refrescar Datos";
-                if (currentFilterValue !== '') {
+                
+                // Si tenían una búsqueda activa, la re-aplica
+                const searchTerm = document.getElementById('searchInput').value.trim();
+                if (searchTerm !== '') {
+                    performSearch();
+                } else if (currentFilterValue !== '') {
                     const typeToApply = currentMode === 'categoria' ? 'category' : 'file';
                     applyFilter(typeToApply, currentFilterValue, null);
                 } else {
-                    // Refresca la vista actual (general por ejemplo)
                     switchMode(currentMode); 
                 }
                 return true;
@@ -465,6 +506,8 @@
         // INTERFAZ Y RENDERIZADO
         // ==========================================
         function switchMode(mode) {
+            document.getElementById('searchInput').value = ''; // Limpiar buscador al cambiar de pestaña
+
             currentMode = mode;
             currentFilterValue = '';
             
@@ -491,13 +534,14 @@
         }
 
         function applyFilter(type, value, btnElement) {
+            document.getElementById('searchInput').value = ''; // Limpiar buscador si seleccionan filtro
+
             currentFilterValue = value;
             
             if(btnElement) {
                 document.querySelectorAll('#filterContainer .cat-btn').forEach(b => b.classList.remove('active'));
                 btnElement.classList.add('active');
             } else {
-                // Autoseleccionar la pastilla si venimos de un refresh manual
                 document.querySelectorAll('#filterContainer .cat-btn').forEach(b => {
                     if (b.innerText === value) b.classList.add('active');
                 });
@@ -537,7 +581,7 @@
             grid.innerHTML = '';
             
             if(products.length === 0) {
-                grid.innerHTML = '<div class="status-message">No hay productos para mostrar.</div>';
+                grid.innerHTML = '<div class="status-message">No se encontraron productos.</div>';
                 return;
             }
 
@@ -548,7 +592,6 @@
                 const obsHTML = p.obs ? `<div class="product-obs">📌 ${p.obs}</div>` : '';
                 const bultoHTML = p.cantidadBulto ? `<div class="product-bulto">📦 Bulto: ${p.cantidadBulto} u.</div>` : '';
                 
-                // MAGIA: El atributo loading="lazy" hace que las fotos no saturen el navegador
                 grid.innerHTML += `
                     <div class="product-card">
                         <div class="photo-frame">
