@@ -10,15 +10,16 @@
     
     <style>
         :root {
-            --primary-blue: #0056b3;     
-            --soft-blue: #e8f4fc;        
-            --border-blue: #cce0f5;      
+            --primary-blue: #801e1e;     
+            --soft-blue: #faeaea;        
+            --border-blue: #e8caca;      
             --text-dark: #2d3436;        
             --text-gray: #636e72;        
             --bg-page: #f4f7f6;          
             --bg-white: #ffffff;         
             --accent-red: #d63031;       
             --admin-purple: #6c5ce7;
+            --success-green: #27ae60;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,22 +35,23 @@
             max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 40px;
         }
 
-        .btn-main {
-            background-color: var(--primary-blue); color: white; border: 2px solid var(--primary-blue);
-            padding: 14px 40px; border-radius: 50px; font-family: 'Poppins', sans-serif; font-size: 16px; font-weight: 600;
-            cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 86, 179, 0.2); width: 100%; max-width: 400px; text-align: center;
-        }
-        .btn-main:hover { background-color: #004494; transform: translateY(-2px); }
-        .btn-main.active { background-color: #003370; border-color: #003370; transform: none; }
-
         .btn-sync {
             background-color: white; color: var(--primary-blue); border: 2px solid var(--border-blue);
-            padding: 10px 30px; border-radius: 50px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600;
-            cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; max-width: 400px;
+            padding: 10px 15px; border-radius: 50px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
         }
         .btn-sync:hover { background-color: var(--soft-blue); border-color: var(--primary-blue); }
 
-        .categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 10px; width: 100%; }
+        .filter-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; margin-bottom: 15px; }
+        .tab-btn {
+            background-color: var(--bg-white); color: var(--text-dark); border: 2px solid #dfe6e9;
+            padding: 10px 25px; border-radius: 30px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .tab-btn:hover { background-color: #f1f2f6; }
+        .tab-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); box-shadow: 0 4px 10px rgba(128,30,30,0.2); }
+
+        .categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 5px; width: 100%; }
         .cat-btn {
             background-color: var(--bg-white); color: var(--text-gray); border: 1px solid #dfe6e9;
             padding: 8px 20px; border-radius: 20px; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 500;
@@ -97,7 +99,7 @@
 
         .product-card {
             background: var(--bg-white); border-radius: 12px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); 
-            border: 1px solid #f1f2f6; display: flex; flex-direction: column; page-break-inside: avoid;
+            border: 1px solid #f1f2f6; display: flex; flex-direction: column; page-break-inside: avoid; position: relative;
         }
         .photo-frame {
             width: 100%; aspect-ratio: 1 / 1; height: auto; border: 2px solid var(--primary-blue); border-radius: 8px; padding: 4px;
@@ -106,24 +108,20 @@
         .photo-frame img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; }
         .product-info { display: flex; flex-direction: column; flex-grow: 1; padding: 0 2px; }
         .product-category { font-size: 10px; font-weight: 700; color: var(--primary-blue); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
-        .product-sku { font-size: 11px; font-weight: 600; color: #b2bec3; margin-bottom: 8px; }
+        .product-sku { font-size: 11px; font-weight: 600; color: #b2bec3; margin-bottom: 6px; }
         .product-title { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px; line-height: 1.2; }
-        .product-desc { font-size: 12px; color: var(--text-gray); margin-bottom: 10px; line-height: 1.4; flex-grow: 1; }
         .product-obs { font-size: 12px; color: var(--accent-red); margin-bottom: 10px; font-weight: 500; background-color: #fff5f5; padding: 6px; border-radius: 4px; border-left: 3px solid var(--accent-red); }
-        
-        /* NUEVO: ESTILO PARA LA CANTIDAD POR BULTO */
-        .product-bulto { 
-            font-size: 13px; font-weight: 600; color: var(--primary-blue); background-color: var(--soft-blue); 
-            padding: 6px 10px; border-radius: 4px; margin-top: auto; border-left: 3px solid var(--primary-blue); 
-        }
+        .product-bulto { font-size: 13px; font-weight: 600; color: var(--primary-blue); background-color: var(--soft-blue); padding: 6px 10px; border-radius: 4px; margin-top: auto; border-left: 3px solid var(--primary-blue); }
 
         .status-message { text-align: center; grid-column: 1 / -1; padding: 40px; color: var(--text-gray); font-size: 16px; }
 
         @media print {
-            body { background-color: white; }
+            body { background-color: white; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .web-header, .controls-wrapper, .admin-panel { display: none !important; }
-            .a4-sheet { box-shadow: none; max-width: 100%; width: 100%; margin: 0; }
-            @page { size: A4; margin: 0mm; }
+            .a4-sheet { box-shadow: none; max-width: 100%; width: 100%; margin: 0; padding: 0; }
+            .grid { grid-template-columns: repeat(3, 1fr) !important; gap: 15px !important; }
+            .product-card { border: 1px solid #dfe6e9 !important; break-inside: avoid; page-break-inside: avoid; }
+            @page { size: A4; margin: 10mm; }
         }
     </style>
 </head>
@@ -131,17 +129,30 @@
 
     <header class="web-header">
         <div class="logo-container">
-            <img src="http://googleusercontent.com/image_collection/image_retrieval/8490127715225572213_0" alt="Logo" onerror="this.src='https://via.placeholder.com/250x80/ffffff/0056b3?text=LOGO'">
+            <img src="http://googleusercontent.com/image_collection/image_retrieval/8490127715225572213_0" alt="Logo" onerror="this.src='https://via.placeholder.com/250x80/ffffff/801e1e?text=LOGO'">
         </div>
         <h1>Nuevos Ingresos</h1>
     </header>
 
     <div class="controls-wrapper">
-        <button id="btnStartCatalog" class="btn-main" onclick="showCompleteCatalog()">Iniciar catálogo completo</button>
         
-        <div style="display: flex; gap: 10px; width: 100%; max-width: 400px;">
-            <button class="btn-sync" onclick="loadData()" style="flex: 2;">
-                <span id="syncText">Actualizar vista</span>
+        <div class="filter-tabs" id="filterTabs">
+            <button id="btnModeGeneral" class="tab-btn active" onclick="switchMode('general')">Catálogo General</button>
+            <button id="btnModeCategoria" class="tab-btn" onclick="switchMode('categoria')">Buscar por Categoría</button>
+            <button id="btnModeArchivo" class="tab-btn" onclick="switchMode('archivo')">Buscar por Archivo</button>
+        </div>
+
+        <div class="categories" id="filterContainer"></div>
+        
+        <div style="display: flex; gap: 10px; width: 100%; max-width: 600px; margin-top: 15px;">
+            <button class="btn-sync" onclick="loadData()" style="flex: 1;">
+                <span id="syncText">Actualizar</span>
+            </button>
+            <button class="btn-sync" onclick="imprimirCatalogo()" style="flex: 1; border-color: var(--primary-blue); color: var(--primary-blue);">
+                📄 PDF
+            </button>
+            <button class="btn-sync" onclick="compartirCatalogo()" style="flex: 1; border-color: var(--success-green); color: var(--success-green);">
+                🔗 Compartir
             </button>
             <button class="btn-sync" onclick="toggleAdminPanel()" style="flex: 1; border-color: var(--admin-purple); color: var(--admin-purple);">
                 ⚙️ Admin
@@ -153,20 +164,18 @@
             <div class="admin-buttons">
                 <button class="btn-admin" onclick="triggerBackend('automatizarConversionExcel', 'Convirtiendo archivos de Excel a formato Google...')">1. Convertir Excels</button>
                 <button class="btn-admin" onclick="triggerBackend('procesarFotosDriveAImgBB', 'Subiendo fotos faltantes (Puede tomar minutos)...')">2. Procesar Fotos a Links</button>
-                <button class="btn-admin" onclick="triggerBackend('ejecutarReporteManual', 'Generando el reporte en la Base Final y haciendo el barrido de datos...')">3. Actualizar Reporte</button>
+                <button class="btn-admin" onclick="triggerBackend('ejecutarReporteManual', 'Haciendo barrido y generando reporte...')">3. Actualizar Reporte</button>
             </div>
-            <button class="btn-admin-master" onclick="triggerBackend('ejecutarSincronizacionTotal', 'Iniciando ciclo maestro (Excels -> Fotos -> Reporte)...')">⚡ Ejecutar Sincronización Total</button>
+            <button class="btn-admin-master" onclick="triggerBackend('ejecutarSincronizacionTotal', 'Iniciando ciclo maestro...')">⚡ Ejecutar Sincronización Total</button>
             <div class="admin-status" id="adminStatus">Esperando instrucciones...</div>
         </div>
-        
-        <div class="categories" id="categoryContainer"></div>
     </div>
 
     <div class="a4-sheet" id="a4Sheet">
-        <img id="catalogHeader" src="cabecera_local.jpg" class="catalog-header-img" alt="Cabecera" onerror="this.src='https://placehold.co/2480x350/0056b3/ffffff?text=Banner'">
+        <img id="catalogHeader" src="cabecera_local.jpg" class="catalog-header-img" alt="Cabecera" onerror="this.src='https://placehold.co/2480x350/801e1e/ffffff?text=Banner'">
         <div class="catalog-container">
             <div class="grid" id="productGrid">
-                <div class="status-message">Haz clic en "Iniciar catálogo completo" para comenzar.</div>
+                <div class="status-message">Descargando datos del servidor...</div>
             </div>
         </div>
         <img id="catalogFooter" src="pie_local.jpg" class="catalog-footer-img" alt="Pie" onerror="this.src='https://placehold.co/2480x200/2d3436/ffffff?text=Footer'">
@@ -174,60 +183,91 @@
 
     <script>
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSxFbafMVZW4D1uok55e5sZyTcuWIXxDMFHoQuknZeE77l29zWbHmc6CtWps7CKmmAWgfP0maKRIB9e/pub?output=tsv'; 
+        
         let allProducts = [];
         let categorySettings = {}; 
+        
+        let listCategories = new Set();
+        let listFiles = new Set();
+        
+        let currentMode = 'general'; 
+        let currentFilterValue = '';
 
-        function toggleAdminPanel() {
-            const panel = document.getElementById('adminPanel');
-            if (panel.style.display === 'flex') {
-                panel.style.display = 'none';
-                return;
-            }
-            const password = prompt("Seguridad Mirna: Ingresa la clave de administrador para acceder a los controles.");
-            if (password === "Catalogo123") {
-                panel.style.display = 'flex';
-            } else if (password !== null) { 
-                alert("Clave incorrecta. Acceso denegado.");
-            }
-        }
+        window.onload = function() {
+            loadData();
+        };
 
-        function triggerBackend(functionName, loadingMessage) {
-            const statusDiv = document.getElementById('adminStatus');
-            statusDiv.innerHTML = `⏳ <b>Procesando:</b> ${loadingMessage}`;
+        function switchMode(mode) {
+            currentMode = mode;
+            currentFilterValue = '';
             
-            if (typeof google !== 'undefined' && google.script) {
-                document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = true);
-                
-                google.script.run
-                    .withSuccessHandler(function(response) {
-                        statusDiv.innerHTML = `✅ <b>¡Éxito!</b> Tarea completada. Actualizando tu vista...`;
-                        document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = false);
-                        loadData(); 
-                    })
-                    .withFailureHandler(function(error) {
-                        statusDiv.innerHTML = `❌ <b>Error:</b> ${error.message} (Intenta nuevamente)`;
-                        document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = false);
-                    })
-                    [functionName](); 
-            } else {
-                statusDiv.innerHTML = `⚠️ <b>Error de Entorno:</b> La web debe estar desplegada como una 'Aplicación Web' de Google para ejecutar estas funciones.`;
-            }
-        }
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btnMode' + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add('active');
 
-        function showCompleteCatalog() {
-            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('btnStartCatalog').classList.add('active');
-            if(allProducts.length === 0) {
-                loadData(true);
-            } else {
+            const container = document.getElementById('filterContainer');
+            container.innerHTML = '';
+
+            if (mode === 'general') {
                 applyTheme('general');
                 renderProducts(allProducts);
+            } else if (mode === 'categoria') {
+                Array.from(listCategories).filter(c => c !== "").sort().forEach(cat => {
+                    container.innerHTML += `<button class="cat-btn" onclick="applyFilter('category', '${cat}', this)">${cat}</button>`;
+                });
+                document.getElementById('productGrid').innerHTML = '<div class="status-message">👆 Selecciona una Categoría arriba para ver los productos.</div>';
+            } else if (mode === 'archivo') {
+                Array.from(listFiles).filter(f => f !== "").sort().forEach(file => {
+                    container.innerHTML += `<button class="cat-btn" onclick="applyFilter('file', '${file}', this)">${file}</button>`;
+                });
+                document.getElementById('productGrid').innerHTML = '<div class="status-message">👆 Selecciona un Archivo arriba para ver los productos.</div>';
             }
         }
 
-        async function loadData(fromStartButton = false) {
+        function applyFilter(type, value, btnElement) {
+            currentFilterValue = value;
+            
+            if(btnElement) {
+                document.querySelectorAll('#filterContainer .cat-btn').forEach(b => b.classList.remove('active'));
+                btnElement.classList.add('active');
+            }
+
+            let filtered = [];
+            if (type === 'category') {
+                applyTheme(value);
+                filtered = allProducts.filter(p => p.category === value);
+            } else if (type === 'file') {
+                applyTheme('general'); 
+                filtered = allProducts.filter(p => p.file === value);
+            }
+            renderProducts(filtered);
+        }
+
+        function compartirCatalogo() {
+            let baseUrl = window.location.href.split('?')[0];
+            let shareUrl = baseUrl + "?view=cliente";
+            
+            if (currentMode === 'categoria' && currentFilterValue !== '') {
+                shareUrl += "&type=cat&val=" + encodeURIComponent(currentFilterValue);
+            } else if (currentMode === 'archivo' && currentFilterValue !== '') {
+                shareUrl += "&type=file&val=" + encodeURIComponent(currentFilterValue);
+            } else if (currentMode === 'general') {
+                
+            } else {
+                alert("Primero selecciona la categoría o archivo específico que deseas compartir.");
+                return;
+            }
+
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert("✅ ¡Micro-Link Copiado!\n\nPuedes pegarlo en WhatsApp. El cliente solo verá la selección actual sin los botones de administración.");
+            }).catch(err => {
+                prompt("Copia este enlace manualmente:", shareUrl);
+            });
+        }
+
+        async function loadData() {
             const btnText = document.getElementById('syncText');
-            btnText.innerText = "Descargando datos...";
+            if(btnText) btnText.innerText = "Descargando...";
+            
             try {
                 const cacheBuster = `&v=${new Date().getTime()}`;
                 const response = await fetch(SHEET_URL + cacheBuster);
@@ -236,24 +276,19 @@
                 const data = await response.text();
                 parseTSV(data);
                 
-                btnText.innerText = "Vista actualizada ✓";
-                if(fromStartButton || document.getElementById('btnStartCatalog').classList.contains('active')) {
-                    renderProducts(allProducts);
-                } else {
-                    const activeFilterBtn = document.querySelector('.cat-btn.active');
-                    if(activeFilterBtn) filterCategory(activeFilterBtn.innerText, activeFilterBtn);
-                }
-                setTimeout(() => { btnText.innerText = "Actualizar vista"; }, 3000);
+                if(btnText) btnText.innerText = "Actualizar";
+
             } catch (error) {
-                btnText.innerText = "Error de conexión";
-                setTimeout(() => { btnText.innerText = "Actualizar vista"; }, 3000);
+                if(btnText) btnText.innerText = "Error";
+                setTimeout(() => { if(btnText) btnText.innerText = "Actualizar"; }, 3000);
             }
         }
 
         function parseTSV(data) {
             const rows = data.split('\n');
             allProducts = [];
-            const categories = new Set();
+            listCategories = new Set();
+            listFiles = new Set();
             categorySettings = {}; 
             
             for(let i = 1; i < rows.length; i++) {
@@ -263,13 +298,15 @@
                         image: cols[1] ? cols[1].trim() : '',       
                         category: cols[2] ? cols[2].trim() : '',    
                         title: cols[3] ? cols[3].trim() : '',       
-                        desc: cols[4] ? cols[4].trim() : '',        
+                        file: cols[4] ? cols[4].trim() : '', 
                         obs: cols[5] ? cols[5].trim() : '',         
-                        cantidadBulto: cols[6] ? cols[6].trim() : '', // Extraemos la Cantidad por Bulto de la Columna G       
+                        cantidadBulto: cols[6] ? cols[6].trim() : '', 
                         sku: cols[7] ? cols[7].trim() : ''          
                     };
                     allProducts.push(product);
-                    categories.add(product.category);
+                    
+                    if(product.category) listCategories.add(product.category);
+                    if(product.file) listFiles.add(product.file);
 
                     if (product.category && !categorySettings[product.category]) {
                         if ((cols[8] && cols[8].trim()) || (cols[9] && cols[9].trim()) || (cols[10] && cols[10].trim())) {
@@ -282,7 +319,39 @@
                     }
                 }
             }
-            renderCategories(Array.from(categories));
+            
+            checkClientView();
+        }
+
+        function checkClientView() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isClientView = urlParams.get('view') === 'cliente';
+            
+            if (isClientView) {
+                document.querySelector('.controls-wrapper').style.display = 'none';
+                document.querySelector('.web-header').style.display = 'none';
+                
+                const filterType = urlParams.get('type');
+                const filterVal = urlParams.get('val');
+
+                if (filterType === 'cat' && filterVal) {
+                    applyTheme(filterVal);
+                    renderProducts(allProducts.filter(p => p.category === filterVal));
+                } else if (filterType === 'file' && filterVal) {
+                    applyTheme('general');
+                    renderProducts(allProducts.filter(p => p.file === filterVal));
+                } else {
+                    applyTheme('general');
+                    renderProducts(allProducts);
+                }
+            } else {
+                if (currentFilterValue !== '') {
+                    const typeToApply = currentMode === 'categoria' ? 'category' : 'file';
+                    applyFilter(typeToApply, currentFilterValue, null);
+                } else {
+                    switchMode(currentMode);
+                }
+            }
         }
 
         function applyTheme(category) {
@@ -303,34 +372,12 @@
             sheet.style.backgroundImage = bgImg;
         }
 
-        function renderCategories(categories) {
-            const container = document.getElementById('categoryContainer');
-            const activeCategoryNode = document.querySelector('.cat-btn.active');
-            const activeCategoryText = activeCategoryNode ? activeCategoryNode.innerText : null;
-
-            container.innerHTML = ''; 
-            categories.filter(c => c !== "").sort().forEach(cat => {
-                const isActiveClass = (cat === activeCategoryText) ? 'active' : '';
-                container.innerHTML += `<button class="cat-btn ${isActiveClass}" onclick="filterCategory('${cat}', this)">${cat}</button>`;
-            });
-        }
-
-        function filterCategory(category, btnElement) {
-            document.getElementById('btnStartCatalog').classList.remove('active');
-            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
-            if(btnElement) btnElement.classList.add('active');
-            
-            applyTheme(category); 
-            const filtered = allProducts.filter(p => p.category === category);
-            renderProducts(filtered);
-        }
-
         function renderProducts(products) {
             const grid = document.getElementById('productGrid');
             grid.innerHTML = '';
             
             if(products.length === 0) {
-                grid.innerHTML = '<div class="status-message">No hay productos disponibles.</div>';
+                grid.innerHTML = '<div class="status-message">No hay productos para mostrar.</div>';
                 return;
             }
 
@@ -338,9 +385,7 @@
                 const categoryHTML = p.category ? `<div class="product-category">${p.category}</div>` : '';
                 const skuHTML = p.sku ? `<div class="product-sku">SKU: ${p.sku}</div>` : '';
                 const titleHTML = p.title ? `<div class="product-title">${p.title}</div>` : '';
-                const descHTML = p.desc ? `<div class="product-desc">${p.desc}</div>` : '';
                 const obsHTML = p.obs ? `<div class="product-obs">📌 ${p.obs}</div>` : '';
-                // Aquí usamos la variable que extrajimos en la función parseTSV
                 const bultoHTML = p.cantidadBulto ? `<div class="product-bulto">📦 Bulto: ${p.cantidadBulto} u.</div>` : '';
                 
                 grid.innerHTML += `
@@ -352,13 +397,56 @@
                             ${categoryHTML}
                             ${skuHTML}
                             ${titleHTML}
-                            ${descHTML}
                             ${obsHTML}
                             ${bultoHTML}
                         </div>
                     </div>
                 `;
             });
+        }
+
+        function imprimirCatalogo() {
+            if (allProducts.length === 0) {
+                alert("Primero debes cargar el catálogo para poder exportarlo.");
+                return;
+            }
+            window.print();
+        }
+
+        function toggleAdminPanel() {
+            const panel = document.getElementById('adminPanel');
+            if (panel.style.display === 'flex') {
+                panel.style.display = 'none';
+                return;
+            }
+            const password = prompt("Seguridad Mirna: Ingresa la clave de administrador para acceder a los controles.");
+            if (password === "Catalago123") {
+                panel.style.display = 'flex';
+            } else if (password !== null) { 
+                alert("Clave incorrecta. Acceso denegado.");
+            }
+        }
+
+        function triggerBackend(functionName, loadingMessage) {
+            const statusDiv = document.getElementById('adminStatus');
+            statusDiv.innerHTML = `⏳ <b>Procesando:</b> ${loadingMessage}`;
+            
+            if (typeof google !== 'undefined' && google.script) {
+                document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = true);
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        statusDiv.innerHTML = `✅ <b>¡Éxito!</b> Tarea completada.`;
+                        document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = false);
+                        loadData(); 
+                    })
+                    .withFailureHandler(function(error) {
+                        statusDiv.innerHTML = `❌ <b>Error:</b> ${error.message} (Intenta nuevamente)`;
+                        document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = false);
+                    })
+                    [functionName](); 
+            } else {
+                statusDiv.innerHTML = `⚠️ <b>Error de Entorno:</b> La web debe estar desplegada como una 'Aplicación Web'.`;
+            }
         }
     </script>
 </body>
