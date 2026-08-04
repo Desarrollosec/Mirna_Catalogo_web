@@ -35,6 +35,14 @@
             max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 40px;
         }
 
+        .btn-main {
+            background-color: var(--primary-blue); color: white; border: 2px solid var(--primary-blue);
+            padding: 14px 40px; border-radius: 50px; font-family: 'Poppins', sans-serif; font-size: 16px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(128, 30, 30, 0.2); width: 100%; max-width: 400px; text-align: center;
+        }
+        .btn-main:hover { background-color: #631515; transform: translateY(-2px); }
+        .btn-main.active { background-color: #4a0f0f; border-color: #4a0f0f; transform: none; }
+
         .btn-sync {
             background-color: white; color: var(--primary-blue); border: 2px solid var(--border-blue);
             padding: 10px 15px; border-radius: 50px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600;
@@ -145,11 +153,11 @@
         <div class="categories" id="filterContainer"></div>
         
         <div style="display: flex; gap: 10px; width: 100%; max-width: 600px; margin-top: 15px;">
-            <button class="btn-sync" onclick="loadData()" style="flex: 1;">
+            <button class="btn-sync" onclick="loadAdminData()" style="flex: 1;">
                 <span id="syncText">Actualizar</span>
             </button>
-            <button class="btn-sync" onclick="imprimirCatalogo()" style="flex: 1; border-color: var(--primary-blue); color: var(--primary-blue);">
-                📄 PDF
+            <button class="btn-sync" onclick="descargarPDF()" style="flex: 1; border-color: var(--primary-blue); color: var(--primary-blue);">
+                📄 Exportar PDF
             </button>
             <button class="btn-sync" onclick="compartirCatalogo()" style="flex: 1; border-color: var(--success-green); color: var(--success-green);">
                 🔗 Compartir
@@ -175,7 +183,7 @@
         <img id="catalogHeader" src="cabecera_local.jpg" class="catalog-header-img" alt="Cabecera" onerror="this.src='https://placehold.co/2480x350/801e1e/ffffff?text=Banner'">
         <div class="catalog-container">
             <div class="grid" id="productGrid">
-                <div class="status-message">Descargando datos del servidor...</div>
+                <!-- El contenido inicial se inyecta por JS dependiendo si es admin o cliente -->
             </div>
         </div>
         <img id="catalogFooter" src="pie_local.jpg" class="catalog-footer-img" alt="Pie" onerror="this.src='https://placehold.co/2480x200/2d3436/ffffff?text=Footer'">
@@ -186,16 +194,146 @@
         
         let allProducts = [];
         let categorySettings = {}; 
-        
         let listCategories = new Set();
         let listFiles = new Set();
         
         let currentMode = 'general'; 
         let currentFilterValue = '';
 
-        window.onload = function() {
-            loadData();
-        };
+        // ==========================================
+        // CONTROL DE VISTAS (CLIENTE VS ADMIN)
+        // ==========================================
+        const urlParams = new URLSearchParams(window.location.search);
+        const isClientView = urlParams.get('view') === 'cliente';
+
+        // Lógica de inicio al abrir la página
+        if (isClientView) {
+            // Ocultamos la interfaz completa de controles
+            document.querySelector('.controls-wrapper').style.display = 'none';
+            document.querySelector('.web-header').style.display = 'none';
+            
+            // Colocamos el botón limpio y amigable para el cliente
+            document.getElementById('productGrid').innerHTML = `
+                <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 40vh; text-align: center;">
+                    <img src="http://googleusercontent.com/image_collection/image_retrieval/8490127715225572213_0" alt="Logo Mirna" style="max-width: 250px; margin-bottom: 25px;">
+                    <button class="btn-main" onclick="loadClientCatalog()" style="max-width: 350px;">🛍️ Ver Catálogo Especial</button>
+                </div>
+            `;
+        } else {
+            // Modo Administrador normal
+            document.getElementById('productGrid').innerHTML = '<div class="status-message">Descargando datos del servidor...</div>';
+            loadAdminData().then(success => {
+                if(success) switchMode('general');
+            });
+        }
+
+        // ==========================================
+        // FUNCIONES DE DESCARGA DE DATOS
+        // ==========================================
+
+        // Carga para el cliente al presionar el botón "Ver Catálogo"
+        async function loadClientCatalog() {
+            document.getElementById('productGrid').innerHTML = '<div class="status-message">Preparando tu catálogo, por favor espera... ⏳</div>';
+            
+            const success = await fetchDataFromGoogle();
+            
+            if (success) {
+                const filterType = urlParams.get('type');
+                const filterVal = urlParams.get('val');
+
+                if (filterType === 'cat' && filterVal) {
+                    applyTheme(filterVal);
+                    renderProducts(allProducts.filter(p => p.category === filterVal));
+                } else if (filterType === 'file' && filterVal) {
+                    applyTheme('general');
+                    renderProducts(allProducts.filter(p => p.file === filterVal));
+                } else {
+                    applyTheme('general');
+                    renderProducts(allProducts);
+                }
+            } else {
+                document.getElementById('productGrid').innerHTML = '<div class="status-message" style="color:red;">Hubo un problema de conexión. Por favor recarga la página.</div>';
+            }
+        }
+
+        // Carga normal para el panel de administración
+        async function loadAdminData() {
+            const btnText = document.getElementById('syncText');
+            if(btnText) btnText.innerText = "Descargando...";
+            
+            const success = await fetchDataFromGoogle();
+            
+            if(success) {
+                if(btnText) btnText.innerText = "Actualizar";
+                
+                // Si el admin ya estaba viendo un filtro, se lo mantenemos al actualizar
+                if (currentFilterValue !== '') {
+                    const typeToApply = currentMode === 'categoria' ? 'category' : 'file';
+                    applyFilter(typeToApply, currentFilterValue, null);
+                }
+                return true;
+            } else {
+                if(btnText) btnText.innerText = "Error";
+                setTimeout(() => { if(btnText) btnText.innerText = "Actualizar"; }, 3000);
+                return false;
+            }
+        }
+
+        // Función base que hace el trabajo pesado de conectarse a Google
+        async function fetchDataFromGoogle() {
+            try {
+                const cacheBuster = `&v=${new Date().getTime()}`;
+                const response = await fetch(SHEET_URL + cacheBuster);
+                if (!response.ok) throw new Error("No se pudo leer el archivo");
+                
+                const data = await response.text();
+                parseTSV(data);
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        function parseTSV(data) {
+            const rows = data.split('\n');
+            allProducts = [];
+            listCategories = new Set();
+            listFiles = new Set();
+            categorySettings = {}; 
+            
+            for(let i = 1; i < rows.length; i++) {
+                const cols = rows[i].split('\t');
+                if(cols.length >= 4 && cols[1] !== undefined && cols[1].trim() !== "") {
+                    const product = {
+                        image: cols[1] ? cols[1].trim() : '',       
+                        category: cols[2] ? cols[2].trim() : '',    
+                        title: cols[3] ? cols[3].trim() : '',       
+                        file: cols[4] ? cols[4].trim() : '', 
+                        obs: cols[5] ? cols[5].trim() : '',         
+                        cantidadBulto: cols[6] ? cols[6].trim() : '', 
+                        sku: cols[7] ? cols[7].trim() : ''          
+                    };
+                    allProducts.push(product);
+                    
+                    if(product.category) listCategories.add(product.category);
+                    if(product.file) listFiles.add(product.file);
+
+                    if (product.category && !categorySettings[product.category]) {
+                        if ((cols[8] && cols[8].trim()) || (cols[9] && cols[9].trim()) || (cols[10] && cols[10].trim())) {
+                            categorySettings[product.category] = {
+                                header: cols[8] ? cols[8].trim() : '',
+                                footer: cols[9] ? cols[9].trim() : '',
+                                bg: cols[10] ? cols[10].trim() : ''
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // INTERFAZ Y RENDERIZADO
+        // ==========================================
 
         function switchMode(mode) {
             currentMode = mode;
@@ -240,118 +378,6 @@
                 filtered = allProducts.filter(p => p.file === value);
             }
             renderProducts(filtered);
-        }
-
-        function compartirCatalogo() {
-            let baseUrl = window.location.href.split('?')[0];
-            let shareUrl = baseUrl + "?view=cliente";
-            
-            if (currentMode === 'categoria' && currentFilterValue !== '') {
-                shareUrl += "&type=cat&val=" + encodeURIComponent(currentFilterValue);
-            } else if (currentMode === 'archivo' && currentFilterValue !== '') {
-                shareUrl += "&type=file&val=" + encodeURIComponent(currentFilterValue);
-            } else if (currentMode === 'general') {
-                
-            } else {
-                alert("Primero selecciona la categoría o archivo específico que deseas compartir.");
-                return;
-            }
-
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                alert("✅ ¡Micro-Link Copiado!\n\nPuedes pegarlo en WhatsApp. El cliente solo verá la selección actual sin los botones de administración.");
-            }).catch(err => {
-                prompt("Copia este enlace manualmente:", shareUrl);
-            });
-        }
-
-        async function loadData() {
-            const btnText = document.getElementById('syncText');
-            if(btnText) btnText.innerText = "Descargando...";
-            
-            try {
-                const cacheBuster = `&v=${new Date().getTime()}`;
-                const response = await fetch(SHEET_URL + cacheBuster);
-                if (!response.ok) throw new Error("No se pudo leer el archivo");
-                
-                const data = await response.text();
-                parseTSV(data);
-                
-                if(btnText) btnText.innerText = "Actualizar";
-
-            } catch (error) {
-                if(btnText) btnText.innerText = "Error";
-                setTimeout(() => { if(btnText) btnText.innerText = "Actualizar"; }, 3000);
-            }
-        }
-
-        function parseTSV(data) {
-            const rows = data.split('\n');
-            allProducts = [];
-            listCategories = new Set();
-            listFiles = new Set();
-            categorySettings = {}; 
-            
-            for(let i = 1; i < rows.length; i++) {
-                const cols = rows[i].split('\t');
-                if(cols.length >= 4 && cols[1] !== undefined && cols[1].trim() !== "") {
-                    const product = {
-                        image: cols[1] ? cols[1].trim() : '',       
-                        category: cols[2] ? cols[2].trim() : '',    
-                        title: cols[3] ? cols[3].trim() : '',       
-                        file: cols[4] ? cols[4].trim() : '', 
-                        obs: cols[5] ? cols[5].trim() : '',         
-                        cantidadBulto: cols[6] ? cols[6].trim() : '', 
-                        sku: cols[7] ? cols[7].trim() : ''          
-                    };
-                    allProducts.push(product);
-                    
-                    if(product.category) listCategories.add(product.category);
-                    if(product.file) listFiles.add(product.file);
-
-                    if (product.category && !categorySettings[product.category]) {
-                        if ((cols[8] && cols[8].trim()) || (cols[9] && cols[9].trim()) || (cols[10] && cols[10].trim())) {
-                            categorySettings[product.category] = {
-                                header: cols[8] ? cols[8].trim() : '',
-                                footer: cols[9] ? cols[9].trim() : '',
-                                bg: cols[10] ? cols[10].trim() : ''
-                            };
-                        }
-                    }
-                }
-            }
-            
-            checkClientView();
-        }
-
-        function checkClientView() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const isClientView = urlParams.get('view') === 'cliente';
-            
-            if (isClientView) {
-                document.querySelector('.controls-wrapper').style.display = 'none';
-                document.querySelector('.web-header').style.display = 'none';
-                
-                const filterType = urlParams.get('type');
-                const filterVal = urlParams.get('val');
-
-                if (filterType === 'cat' && filterVal) {
-                    applyTheme(filterVal);
-                    renderProducts(allProducts.filter(p => p.category === filterVal));
-                } else if (filterType === 'file' && filterVal) {
-                    applyTheme('general');
-                    renderProducts(allProducts.filter(p => p.file === filterVal));
-                } else {
-                    applyTheme('general');
-                    renderProducts(allProducts);
-                }
-            } else {
-                if (currentFilterValue !== '') {
-                    const typeToApply = currentMode === 'categoria' ? 'category' : 'file';
-                    applyFilter(typeToApply, currentFilterValue, null);
-                } else {
-                    switchMode(currentMode);
-                }
-            }
         }
 
         function applyTheme(category) {
@@ -405,13 +431,46 @@
             });
         }
 
-        function imprimirCatalogo() {
-            if (allProducts.length === 0) {
-                alert("Primero debes cargar el catálogo para poder exportarlo.");
+        // ==========================================
+        // FUNCIONES DE COMPARTIR Y EXPORTAR
+        // ==========================================
+
+        function compartirCatalogo() {
+            let baseUrl = window.location.href.split('?')[0];
+            let shareUrl = baseUrl + "?view=cliente";
+            
+            if (currentMode === 'categoria' && currentFilterValue !== '') {
+                shareUrl += "&type=cat&val=" + encodeURIComponent(currentFilterValue);
+            } else if (currentMode === 'archivo' && currentFilterValue !== '') {
+                shareUrl += "&type=file&val=" + encodeURIComponent(currentFilterValue);
+            } else if (currentMode === 'general') {
+                // Compartir todo
+            } else {
+                alert("Primero selecciona la categoría o archivo específico que deseas compartir.");
                 return;
             }
+
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert("✅ ¡Micro-Link Copiado!\n\nPuedes pegarlo en WhatsApp. Tu cliente solo verá la selección actual (Sin menú ni controles).");
+            }).catch(err => {
+                prompt("Copia este enlace manualmente:", shareUrl);
+            });
+        }
+
+        function descargarPDF() {
+            if (allProducts.length === 0) {
+                alert("Primero debes cargar un catálogo para poder exportarlo.");
+                return;
+            }
+            
+            // Aviso explícito para instruir al usuario a seleccionar "Guardar como PDF"
+            alert("💡 PARA GUARDAR EL PDF CON BAJO PESO:\n\n1. Al darle 'Aceptar', se abrirá la ventana de impresión.\n2. En la opción 'Destino' o 'Impresora', cambia a 'Guardar como PDF'.\n3. Haz clic en Guardar.\n\nEsto garantiza que el archivo se mantenga ligero para WhatsApp y no se corten las tarjetas.");
             window.print();
         }
+
+        // ==========================================
+        // FUNCIONES DEL PANEL ADMIN (API APPS SCRIPT)
+        // ==========================================
 
         function toggleAdminPanel() {
             const panel = document.getElementById('adminPanel');
@@ -437,7 +496,7 @@
                     .withSuccessHandler(function(response) {
                         statusDiv.innerHTML = `✅ <b>¡Éxito!</b> Tarea completada.`;
                         document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = false);
-                        loadData(); 
+                        loadAdminData(); 
                     })
                     .withFailureHandler(function(error) {
                         statusDiv.innerHTML = `❌ <b>Error:</b> ${error.message} (Intenta nuevamente)`;
