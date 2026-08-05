@@ -1,477 +1,667 @@
-// ==========================================
-// ⚙️ CONFIGURACIÓN GENERAL
-// ==========================================
-const IMGBB_API_KEY = '82ede8cbc421f15041cfe4cb2624b384';
-const ID_CARPETA_DRIVE_FOTOS = '1UArUWX4B83jy-HBnFW_sVis2-hElYy63'; 
-const ID_HOJA_CALCULO = '1viRHY8cGQ5T9AYzDjlAd8XLAQdhR_6rMHD5TBHKYgkM'; 
-const ID_CARPETA_INVENTARIOS = '1rHqBvVvw9Gxp3U1rbLTYj5xwT06x2C8T'; 
-
-// ==========================================
-// 🎨 FUNCIONES DE INTERFAZ Y MENÚ
-// ==========================================
-function onOpen() {
-  var ui = SpreadsheetApp.getUi();
-  ui.createMenu('🖼️ Catálogo Mirna')
-      .addItem('Generar imágenes en Columna A', 'actualizarImagenesMasivo')
-      .addItem('Actualizar listado en Base Final', 'ejecutarReporteManual')
-      .addToUi();
-}
-
-function actualizarImagenesMasivo() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var lastRow = sheet.getLastRow();
-  
-  if (lastRow < 2) return; 
-  
-  var rangeB = sheet.getRange(2, 2, lastRow - 1, 1);
-  var urls = rangeB.getValues();
-  var formulas = [];
-  
-  for (var i = 0; i < urls.length; i++) {
-    var url = urls[i][0];
-    if (url && url.toString().trim() !== "") {
-      formulas.push(['=IMAGE(B' + (i + 2) + ')']);
-    } else {
-      formulas.push(['']);
-    }
-  }
-  
-  var rangeA = sheet.getRange(2, 1, lastRow - 1, 1);
-  rangeA.setFormulas(formulas);
-  
-  sheet.setColumnWidth(1, 300);
-  sheet.setRowHeights(2, lastRow - 1, 300);
-}
-
-function onEdit(e) {
-  if (!e || !e.range) return;
-  var range = e.range;
-  var sheet = range.getSheet();
-  
-  if (range.getColumn() == 2 && range.getRow() > 1) {
-    var row = range.getRow();
-    var url = e.value; 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Ingresos | Almacenes Mirna</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    var cellA = sheet.getRange(row, 1);
-    
-    if (url && url.toString().trim() !== "") {
-      cellA.setFormula('=IMAGE(B' + row + ')');
-      sheet.setRowHeight(row, 300);
-      sheet.setColumnWidth(1, 300); 
-    } else {
-      cellA.clearContent();
-    }
-  }
-}
-
-// ==========================================
-// 🧹 FUNCIONES DE LIMPIEZA Y CATEGORIZACIÓN
-// ==========================================
-function limpiarTexto(texto) {
-  if (!texto) return "";
-  
-  let limpio = texto.toString().toLowerCase();
-
-  limpio = limpio.replace(/±/g, 'ñ');
-  limpio = limpio.replace(/navidenos/g, 'navideños');
-  limpio = limpio.replace(/navidenas/g, 'navideñas');
-  limpio = limpio.replace(/navideno/g, 'navideño');
-  limpio = limpio.replace(/navidena/g, 'navideña');
-  limpio = limpio.replace(/ninos/g, 'niños');
-  limpio = limpio.replace(/ninas/g, 'niñas');
-  limpio = limpio.replace(/nino/g, 'niño');
-  limpio = limpio.replace(/nina/g, 'niña');
-  limpio = limpio.replace(/arbol/g, 'árbol');
-  limpio = limpio.replace(/musica/g, 'música');
-  limpio = limpio.replace(/plastico/g, 'plástico');
-  limpio = limpio.replace(/metalico/g, 'metálico');
-
-  limpio = limpio.split(' ').map(palabra => {
-    if (palabra.length > 0) {
-      return palabra.charAt(0).toUpperCase() + palabra.slice(1);
-    }
-    return '';
-  }).join(' ');
-
-  const conectores = ["De", "Del", "Con", "Y", "Para", "En", "El", "La", "Los", "Las", "Un", "Una", "Por"];
-  limpio = limpio.split(' ').map((palabra, index) => {
-    if (index > 0 && conectores.includes(palabra)) {
-      return palabra.toLowerCase();
-    }
-    return palabra;
-  }).join(' ');
-
-  return limpio.trim();
-}
-
-function obtenerCategoriaPorArchivo(nombreArchivo) {
-  if (/IMP\.1203|IMP\.1210|IMP\.1212|IMP\.1233/i.test(nombreArchivo)) {
-    return "Adornos de navidad";
-  } else if (/IMP\.1220|IMP\.1232|IMP1233|IMP\.1234/i.test(nombreArchivo)) {
-    return "Muñecas";
-  } else if (/IMP\.1236|IMP\.1239|IMP\.1214|IMP\.1211/i.test(nombreArchivo)) {
-    return "Bicicletas, Patines y Scooters.";
-  } else if (/IMP\.1209/i.test(nombreArchivo)) {
-    return "Luces";
-  }
-  return ""; 
-}
-
-// ==========================================
-// 🛠️ FUNCIÓN: CONVERTIR EXCEL A GOOGLE SHEETS
-// ==========================================
-function automatizarConversionExcel() {
-  const carpeta = DriveApp.getFolderById(ID_CARPETA_INVENTARIOS);
-  const archivosExcel = carpeta.searchFiles('mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" or mimeType="application/vnd.ms-excel"');
-  
-  let contador = 0;
-  while (archivosExcel.hasNext()) {
-    const archivo = archivosExcel.next();
-    const nombreExcel = archivo.getName();
-    
-    const metadatos = {
-      name: nombreExcel.replace(/\.xlsx?/i, ''),
-      mimeType: MimeType.GOOGLE_SHEETS,         
-      parents: [ID_CARPETA_INVENTARIOS]         
-    };
-    
-    try {
-      Drive.Files.copy(metadatos, archivo.getId());
-      archivo.setTrashed(true);
-      contador++;
-    } catch (error) {
-      console.log("❌ Error al convertir " + nombreExcel + ": " + error.toString());
-    }
-  }
-}
-
-// ==========================================
-// 🧠 FUNCIÓN: LEER INVENTARIOS Y SUS ARCHIVOS
-// ==========================================
-function cargarInventarioGlobal(idCarpeta) {
-  const carpeta = DriveApp.getFolderById(idCarpeta);
-  const archivos = carpeta.getFiles();
-  const diccionarioInventario = {};
-
-  console.log("📚 Leyendo inventarios (Búsqueda inteligente dinámica en todas las columnas)...");
-
-  while (archivos.hasNext()) {
-    const archivo = archivos.next();
-    
-    if (archivo.getMimeType() === MimeType.GOOGLE_SHEETS) {
-      const nombreArchivoCompleto = archivo.getName(); 
-      const nombreArchivoCorto = nombreArchivoCompleto.split(' - ')[0].trim();
-      const categoriaArchivo = obtenerCategoriaPorArchivo(nombreArchivoCompleto); 
-      
-      const libro = SpreadsheetApp.open(archivo);
-      const hoja = libro.getSheets()[0]; 
-      const datos = hoja.getDataRange().getValues(); 
-
-      // 🔍 LÓGICA DE BÚSQUEDA DINÁMICA DE COLUMNAS (A prueba de balas)
-      let idxCodigo = 4;  // Valor por defecto (Col E)
-      let idxNombre = 5;  // Valor por defecto (Col F)
-      let idxEmpaque = 6; // Valor por defecto (Col G)
-      let idxTipo = 2;    // Valor por defecto (Col C)
-      
-      let limiteFilas = Math.min(10, datos.length); // Busca cabeceras en las primeras 10 filas
-      
-      for (let r = 0; r < limiteFilas; r++) {
-        for (let c = 0; c < datos[r].length; c++) {
-          let valorCelda = datos[r][c] ? datos[r][c].toString().toUpperCase().trim() : "";
-          
-          if (valorCelda === "CÓDIGO" || valorCelda === "CODIGO") idxCodigo = c;
-          else if (valorCelda === "NOMBRE" || valorCelda.includes("DESCRIPCIÓN") || valorCelda.includes("DESCRIPCION")) idxNombre = c;
-          else if (valorCelda.includes("EMPAQUE") || valorCelda.includes("BULTO")) idxEmpaque = c;
-          else if (valorCelda.includes("CONDICIÓN") || valorCelda.includes("CONDICION")) idxTipo = c;
+    <style>
+        /* ==========================================
+           VARIABLES DE COLOR & ESTILOS GLOBALES
+           ========================================== */
+        :root {
+            --primary-blue: #801e1e;     /* Color granate/rojo vino de la marca */
+            --soft-blue: #faeaea;        /* Un tono muy suave del mismo color para fondos */
+            --border-blue: #e8caca;      /* Un tono medio para bordes */
+            --text-dark: #2d3436;        /* Un tono oscuro casi negro para texto principal */
+            --text-gray: #636e72;        /* Un gris medio para texto secundario */
+            --bg-page: #f4f7f6;          /* Un fondo de página muy claro y neutro */
+            --bg-white: #ffffff;         /* Blanco puro */
+            --accent-red: #d63031;       /* Un rojo brillante para acentos como observaciones */
+            --admin-purple: #6c5ce7;     /* Un morado para identificar la sección de administrador */
+            --success-green: #27ae60;    /* Un verde para mensajes de éxito */
         }
-      }
 
-      for (let i = 1; i < datos.length; i++) {
-        const codigo = datos[i][idxCodigo] ? datos[i][idxCodigo].toString().trim() : ""; 
-        const nombre = datos[i][idxNombre] ? limpiarTexto(datos[i][idxNombre]) : ""; 
-        const cantidadBulto = datos[i][idxEmpaque] ? datos[i][idxEmpaque].toString().trim() : ""; 
-        const tipo = datos[i][idxTipo] ? datos[i][idxTipo].toString().trim() : ""; 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-page); color: var(--text-dark); line-height: 1.6; }
+
+        /* ==========================================
+           CABECERA & BOTÓN ADMIN
+           ========================================== */
+        .web-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background-color: var(--bg-white);
+            border-bottom: 1px solid #dfe6e9;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        /* Espaciador invisible para centrar el logo */
+        .header-spacer { width: 45px; } 
+
+        .logo-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .logo-center img {
+            max-height: 60px;
+            object-fit: contain;
+        }
+
+        .logo-center h1 {
+            font-weight: 600; font-size: 20px; color: var(--primary-blue);
+            text-transform: uppercase; letter-spacing: 1px; margin-top: 5px;
+        }
+
+        /* Botón de configuración circular en la esquina */
+        .btn-admin-top {
+            background: none; border: none; font-size: 24px;
+            cursor: pointer; transition: transform 0.2s ease;
+            color: var(--text-gray); display: flex; align-items: center; justify-content: center;
+            width: 45px; height: 45px; border-radius: 50%; background-color: #f1f2f6;
+        }
+        .btn-admin-top:hover { transform: rotate(90deg); background-color: var(--border-blue); color: var(--primary-blue); }
+
+        /* ==========================================
+           ÁREA DE CONTROLES (JERARQUÍA UX/UI)
+           ========================================== */
+        .controls-wrapper {
+            max-width: 1200px; margin: 0 auto; padding: 0 20px;
+            display: flex; flex-direction: column; align-items: center;
+            margin-bottom: 30px;
+        }
+
+        /* Nivel 1 Superior: Pestañas de Modo */
+        .filter-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; margin-bottom: 15px; }
+        .tab-btn {
+            background-color: var(--bg-white); color: var(--text-dark); border: 2px solid #dfe6e9;
+            padding: 10px 25px; border-radius: 30px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .tab-btn:hover { background-color: #f1f2f6; }
+        .tab-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); box-shadow: 0 4px 10px rgba(128,30,30,0.25); }
+
+        /* Nivel 2 Medio: Píldoras de Filtro Dinámico */
+        .categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; margin-bottom: 10px; min-height: 40px; }
+        .cat-btn {
+            background-color: var(--bg-white); color: var(--text-gray); border: 1px solid #dfe6e9;
+            padding: 8px 18px; border-radius: 20px; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 500;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .cat-btn:hover { background-color: var(--soft-blue); color: var(--primary-blue); border-color: var(--border-blue); }
+        .cat-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+
+        /* BUSCADOR */
+        .search-container {
+            width: 100%; max-width: 500px;
+            margin-bottom: 20px;
+        }
+        .search-input {
+            width: 100%; padding: 12px 20px; border: 2px solid #dfe6e9;
+            border-radius: 30px; font-family: 'Poppins', sans-serif; font-size: 14px;
+            outline: none; transition: all 0.2s ease; text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .search-input:focus { border-color: var(--primary-blue); box-shadow: 0 4px 10px rgba(128,30,30,0.1); }
+
+        /* Nivel 3 Inferior: Botonera de Acciones */
+        .action-bar {
+            display: flex; gap: 12px; width: 100%; max-width: 500px;
+            justify-content: center; padding-top: 15px; border-top: 1px dashed #dfe6e9;
+        }
+        .btn-action {
+            background-color: white; color: var(--text-dark); border: 2px solid #dfe6e9;
+            padding: 10px 20px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1;
+        }
+        .btn-action:hover { background-color: #f1f2f6; }
+        .btn-action.primary { color: var(--primary-blue); border-color: var(--border-blue); background-color: var(--soft-blue); }
+        .btn-action.primary:hover { background-color: #f0d8d8; }
+        .btn-action.success { color: var(--success-green); border-color: #a3e4be; background-color: #eafaf1; }
+        .btn-action.success:hover { background-color: #d5f5e3; }
+
+        /* ==========================================
+           MODAL DE ADMINISTRADOR Y PANEL INTERNO
+           ========================================== */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 9999;
+            animation: fadeIn 0.2s ease;
+        }
         
-        if (codigo !== "") {
-          // Asignación directa: Si el código existe, lo actualizamos con la información más limpia
-          if (!diccionarioInventario[codigo]) {
-            diccionarioInventario[codigo] = { archivos: [] };
-          }
-          
-          diccionarioInventario[codigo].nombre = nombre;
-          diccionarioInventario[codigo].archivoCorto = nombreArchivoCorto;
-          diccionarioInventario[codigo].categoria = categoriaArchivo;
-          diccionarioInventario[codigo].tipo = tipo;
-          diccionarioInventario[codigo].cantidadBulto = cantidadBulto;
-          
-          if (!diccionarioInventario[codigo].archivos.includes(nombreArchivoCompleto)) {
-            diccionarioInventario[codigo].archivos.push(nombreArchivoCompleto);
-          }
+        .modal-content {
+            background: white; width: 90%; max-width: 400px;
+            border-radius: 16px; padding: 30px; text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            position: relative;
         }
-      }
-    }
-  }
-  return diccionarioInventario;
-}
+        
+        .modal-content h3 { color: var(--primary-blue); margin-bottom: 10px; font-size: 18px; }
+        .modal-content p { color: var(--text-gray); font-size: 13px; margin-bottom: 20px; }
+        
+        .modal-input {
+            width: 100%; padding: 12px 15px; border: 2px solid #dfe6e9;
+            border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 14px;
+            margin-bottom: 20px; outline: none; transition: border 0.2s; text-align: center;
+        }
+        .modal-input:focus { border-color: var(--primary-blue); }
+        
+        .modal-btns { display: flex; gap: 10px; }
+        .btn-modal { flex: 1; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-family: 'Poppins', sans-serif; }
+        .btn-cancel { background-color: #f1f2f6; color: var(--text-gray); }
+        .btn-enter { background-color: var(--primary-blue); color: white; }
 
-// ==========================================
-// ☁️ FUNCIÓN DE APOYO SEGURO
-// ==========================================
-function subirAImgBBConReintento(blob) {
-  const bytes = blob.getBytes();
-  if (bytes.length > 4 * 1024 * 1024) return "No cargada por peso";
+        /* Panel de control de administrador, oculto por defecto */
+        .admin-panel {
+            width: 100%; max-width: 600px; background-color: white; border: 2px dashed var(--admin-purple);
+            border-radius: 12px; padding: 20px; margin-top: 20px; display: none; flex-direction: column; gap: 15px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .admin-title { text-align: center; color: var(--admin-purple); font-size: 16px; font-weight: 700; margin-bottom: 5px; }
+        .admin-buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .btn-admin { background-color: white; color: var(--admin-purple); border: 1px solid var(--admin-purple); padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+        .btn-admin:hover { background-color: var(--admin-purple); color: white; }
+        .btn-admin-master { background-color: var(--admin-purple); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; width: 100%; }
+        .admin-status { text-align: center; font-size: 13px; font-weight: 500; color: var(--text-gray); min-height: 20px; }
 
-  const base64 = Utilities.base64Encode(bytes);
-  const url = 'https://api.imgbb.com/1/upload?key=' + IMGBB_API_KEY;
-  const opciones = {
-    'method': 'post',
-    'payload': { 'image': base64 },
-    'muteHttpExceptions': true
-  };
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-  for (let intento = 1; intento <= 2; intento++) {
-    const respuesta = UrlFetchApp.fetch(url, opciones);
-    const codigoRespuesta = respuesta.getResponseCode();
-    
-    if (codigoRespuesta === 200) {
-      return JSON.parse(respuesta.getContentText()).data.url;
-    } else if (intento === 1) {
-      Utilities.sleep(5000); 
-    } else {
-      return "No cargada por peso";
-    }
-  }
-  return "No cargada por peso";
-}
+        /* ==========================================
+           HOJA A4 Y TARJETAS DE PRODUCTO
+           ========================================== */
+        .a4-sheet {
+            max-width: 210mm; margin: 0 auto; background-color: var(--bg-white); box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            min-height: 297mm; background-size: cover; background-position: top center; background-repeat: no-repeat; display: flex; flex-direction: column;
+            overflow: hidden; /* Evitar desbordamiento de contenido */
+        }
 
-// ==========================================
-// 📊 FUNCIÓN: GENERAR REPORTE EN "Base final"
-// ==========================================
-function actualizarReporteBaseFinal(baseDeDatos, hojaPrincipal) {
-  console.log("📋 Generando compilado actualizado en 'Base final'...");
-  const libro = SpreadsheetApp.openById(ID_HOJA_CALCULO);
-  
-  let hojaReporte = libro.getSheetByName("Base final");
-  if (!hojaReporte) hojaReporte = libro.insertSheet("Base final");
+        .catalog-header-img { width: 100%; height: auto; display: block; background-color: var(--soft-blue); }
+        .catalog-footer-img { width: 100%; height: auto; display: block; margin-top: auto; background-color: var(--text-dark); }
+        .catalog-container { padding: 30px 40px; flex-grow: 1; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; }
 
-  const ultimaFila = hojaPrincipal.getLastRow();
-  const codigosCargados = new Set(); 
+        /* Adaptabilidad para pantallas más pequeñas */
+        @media (max-width: 768px) { 
+            .grid { grid-template-columns: repeat(2, 1fr); } 
+            .a4-sheet { max-width: 100%; } 
+            .web-header { padding: 15px 20px; }
+            .logo-center h1 { font-size: 16px; }
+            .header-spacer { width: 40px; }
+            .btn-admin-top { width: 40px; height: 40px; font-size: 20px; }
+            .action-bar { flex-wrap: wrap; }
+            .btn-action { width: 100%; flex: auto; }
+        }
+        @media (max-width: 480px) { .grid { grid-template-columns: 1fr; } }
 
-  if (ultimaFila >= 2) {
-    const rangoDatos = hojaPrincipal.getRange(2, 1, ultimaFila - 1, 8).getValues();
-    for (let i = 0; i < rangoDatos.length; i++) {
-      const linkActual = rangoDatos[i][1] ? rangoDatos[i][1].toString().trim() : ""; 
-      const codigoFila = rangoDatos[i][7] ? rangoDatos[i][7].toString().trim() : ""; 
+        /* Estilo de la tarjeta de producto */
+        .product-card {
+            background: var(--bg-white); border-radius: 12px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); 
+            border: 1px solid #f1f2f6; display: flex; flex-direction: column; page-break-inside: avoid;
+        }
+        .photo-frame {
+            width: 100%; aspect-ratio: 1 / 1; border: 2px solid var(--primary-blue); border-radius: 8px; padding: 4px;
+            margin-bottom: 15px; background-color: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .photo-frame img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; }
+        .product-info { display: flex; flex-direction: column; flex-grow: 1; padding: 0 2px; }
+        .product-category { font-size: 10px; font-weight: 700; color: var(--primary-blue); text-transform: uppercase; margin-bottom: 2px; }
+        .product-sku { font-size: 11px; font-weight: 600; color: #b2bec3; margin-bottom: 6px; }
+        .product-title { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px; line-height: 1.2; }
+        .product-obs { font-size: 12px; color: var(--accent-red); margin-bottom: 10px; font-weight: 500; background-color: #fff5f5; padding: 6px; border-radius: 4px; border-left: 3px solid var(--accent-red); }
+        .product-bulto { font-size: 13px; font-weight: 600; color: var(--primary-blue); background-color: var(--soft-blue); padding: 6px 10px; border-radius: 4px; margin-top: auto; border-left: 3px solid var(--primary-blue); }
+        .status-message { text-align: center; grid-column: 1 / -1; padding: 40px; color: var(--text-gray); font-size: 16px; }
 
-      if (codigoFila !== "" && linkActual.startsWith("http")) {
-        codigosCargados.add(codigoFila);
-      }
-    }
-  }
+        /* Estilos específicos para impresión (formato PDF) */
+        @media print {
+            body { background-color: white; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .web-header, .controls-wrapper, .admin-panel, .modal-overlay, #actionBtnCompartir { display: none !important; }
+            .a4-sheet { box-shadow: none; max-width: 100%; width: 100%; margin: 0; padding: 0; }
+            .grid { grid-template-columns: repeat(3, 1fr) !important; gap: 15px !important; }
+            .product-card { border: 1px solid #dfe6e9 !important; break-inside: avoid; page-break-inside: avoid; }
+            .photo-frame { border-width: 1px !important; }
+            @page { size: A4; margin: 10mm; }
+        }
+    </style>
+</head>
+<body>
 
-  const datosTemporales = [];
-  let maxColumnasArchivos = 0;
+    <header class="web-header">
+        <div class="header-spacer"></div> 
+        
+        <div class="logo-center">
+            <img src="http://googleusercontent.com/image_collection/image_retrieval/8490127715225572213_0" alt="Logo" onerror="this.src='https://via.placeholder.com/250x80/ffffff/801e1e?text=LOGO'">
+            <h1>Nuevos Ingresos</h1>
+        </div>
+        
+        <button class="btn-admin-top" onclick="openAdminModal()" title="Configuración de Sistema">
+            ⚙️
+        </button>
+    </header>
 
-  for (const codigoBase in baseDeDatos) {
-    const estado = codigosCargados.has(codigoBase) ? "CARGADO" : "NO CARGADO";
-    const listaArchivos = baseDeDatos[codigoBase].archivos;
-    const tipoProducto = baseDeDatos[codigoBase].tipo || ""; 
-    
-    if (listaArchivos.length > maxColumnasArchivos) maxColumnasArchivos = listaArchivos.length;
-    
-    const fila = [tipoProducto, codigoBase, estado].concat(listaArchivos);
-    datosTemporales.push(fila);
-  }
+    <div class="controls-wrapper">
+        
+        <div class="filter-tabs" id="filterTabs">
+            <button id="btnModeGeneral" class="tab-btn active" onclick="switchMode('general')">Catálogo Completo</button>
+            <button id="btnModeCategoria" class="tab-btn" onclick="switchMode('categoria')">Filtrar por Categoría</button>
+            <button id="btnModeArchivo" class="tab-btn" onclick="switchMode('archivo')">Filtrar por Archivo</button>
+        </div>
 
-  const encabezados = ["TIPO", "CÓDIGO", "ESTADO"];
-  for (let i = 1; i <= maxColumnasArchivos; i++) encabezados.push("ARCHIVO " + i);
-  
-  const datosParaEscribir = [encabezados];
-  const numColumnasTotales = encabezados.length;
+        <div class="categories" id="filterContainer"></div>
+        
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar por código o palabra clave..." oninput="performSearch()">
+        </div>
 
-  for (let i = 0; i < datosTemporales.length; i++) {
-    while (datosTemporales[i].length < numColumnasTotales) datosTemporales[i].push("");
-    datosParaEscribir.push(datosTemporales[i]);
-  }
+        <div class="action-bar">
+            <button class="btn-action primary" onclick="loadAdminData()">
+                <span id="syncText">🔄 Refrescar Datos</span>
+            </button>
+            <button class="btn-action" onclick="descargarPDF()">
+                📄 Exportar PDF
+            </button>
+            <button class="btn-action success" id="actionBtnCompartir" onclick="compartirCatalogo()">
+                🔗 Compartir Link
+            </button>
+        </div>
 
-  hojaReporte.clear(); 
-  hojaReporte.getRange(1, 1, datosParaEscribir.length, numColumnasTotales).setValues(datosParaEscribir);
-  hojaReporte.getRange(1, 1, 1, numColumnasTotales).setFontWeight("bold").setBackground("#FF9900").setFontColor("white");
-  hojaReporte.autoResizeColumns(1, numColumnasTotales);
-}
+        <div class="admin-panel" id="adminPanel">
+            <div class="admin-title">Panel de Sincronización Interna</div>
+            <div class="admin-buttons">
+                <button class="btn-admin" onclick="triggerBackend('automatizarConversionExcel', 'Convirtiendo Excels...')">1. Convertir Excels</button>
+                <button class="btn-admin" onclick="triggerBackend('procesarFotosDriveAImgBB', 'Subiendo fotos faltantes...')">2. Procesar Fotos</button>
+                <button class="btn-admin" onclick="triggerBackend('ejecutarReporteManual', 'Generando reporte...')">3. Actualizar Reporte</button>
+            </div>
+            <button class="btn-admin-master" onclick="triggerBackend('ejecutarSincronizacionTotal', 'Sincronizando Todo...')">⚡ Ejecutar Sincronización Total</button>
+            <div class="admin-status" id="adminStatus">Esperando instrucciones...</div>
+        </div>
+    </div>
 
-// ==========================================
-// 🛠️ FUNCIÓN DE BARRIDO COMPLETO (Actualiza vacíos y existentes)
-// ==========================================
-function actualizarDatosFaltantesHojaPrincipal(baseDeDatos, hoja) {
-  const ultimaFila = hoja.getLastRow();
-  if (ultimaFila < 2) return;
-  
-  const rango = hoja.getRange(2, 1, ultimaFila - 1, 8);
-  const valores = rango.getValues();
-  
-  console.log("🧹 Haciendo barrido completo para inyectar Títulos Corregidos, Archivos, Empaques y Categorías...");
+    <div class="a4-sheet" id="a4Sheet">
+        <!-- Banner estático para todas las vistas con el link correcto -->
+        <img id="catalogHeader" src="https://i.imgur.com/IAWXNIg.jpeg" class="catalog-header-img" alt="Cabecera">
 
-  // Este bucle actualiza LA INFORMACIÓN TEXTUAL sin tocar los Links de Columna B (índice 1).
-  for (let i = 0; i < valores.length; i++) {
-    const codigoFila = valores[i][7] ? valores[i][7].toString().trim() : ""; 
-    
-    if (codigoFila !== "" && baseDeDatos[codigoFila]) {
-       // Fuerza actualización de Categoría (Columna C -> 3)
-       hoja.getRange(i + 2, 3).setValue(baseDeDatos[codigoFila].categoria);
-       // Fuerza actualización de TÍTULO CON ORTOGRAFÍA LIMPIA (Columna D -> 4)
-       hoja.getRange(i + 2, 4).setValue(baseDeDatos[codigoFila].nombre);
-       // Fuerza actualización Archivo Corto en Columna E (Columna E -> 5)
-       hoja.getRange(i + 2, 5).setValue(baseDeDatos[codigoFila].archivoCorto);
-       // Fuerza actualización Empaque en Columna G (Columna G -> 7)
-       hoja.getRange(i + 2, 7).setValue(baseDeDatos[codigoFila].cantidadBulto);
-    }
-  }
-}
+        <div class="catalog-container">
+            <div class="grid" id="productGrid">
+                <div class="status-message">Descargando datos de la matriz...⏳</div>
+            </div>
+        </div>
+        <img id="catalogFooter" src="pie_local.jpg" class="catalog-footer-img" alt="Pie" onerror="this.src='https://placehold.co/2480x200/2d3436/ffffff?text=Banner+Pie+de+Pagina'">
+    </div>
 
-function ejecutarReporteManual() {
-  const baseDeDatos = cargarInventarioGlobal(ID_CARPETA_INVENTARIOS);
-  const libro = SpreadsheetApp.openById(ID_HOJA_CALCULO);
-  const hojaPrincipal = libro.getSheets()[0]; 
-  
-  actualizarDatosFaltantesHojaPrincipal(baseDeDatos, hojaPrincipal);
-  actualizarReporteBaseFinal(baseDeDatos, hojaPrincipal);
-}
+    <div class="modal-overlay" id="securityModal">
+        <div class="modal-content">
+            <h3>🔒 Área Restringida</h3>
+            <p>Ingresa la clave de administrador para acceder a las herramientas de sincronización.</p>
+            <input type="password" id="adminPasswordInput" class="modal-input" placeholder="••••••••">
+            <div class="modal-btns">
+                <button class="btn-modal btn-cancel" onclick="closeAdminModal()">Cancelar</button>
+                <button class="btn-modal btn-enter" onclick="verifyAdmin()">Entrar</button>
+            </div>
+        </div>
+    </div>
 
-// ==========================================
-// 🚀 FUNCIÓN MAESTRA CON CONTROL DE AVISOS Y REPORTE FINAL
-// ==========================================
-function procesarFotosDriveAImgBB() {
-  const baseDeDatos = cargarInventarioGlobal(ID_CARPETA_INVENTARIOS);
-  const libro = SpreadsheetApp.openById(ID_HOJA_CALCULO);
-  const hoja = libro.getSheets()[0]; 
-  
-  // PRIMERO: Actualizamos toda la info de los códigos que ya existen en la hoja (Tengan link o no)
-  actualizarDatosFaltantesHojaPrincipal(baseDeDatos, hoja);
-  
-  const carpetaFotos = DriveApp.getFolderById(ID_CARPETA_DRIVE_FOTOS);
-  const archivosFotos = carpetaFotos.getFiles();
-  const mapaFotos = {}; 
+    <script>
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSxFbafMVZW4D1uok55e5sZyTcuWIXxDMFHoQuknZeE77l29zWbHmc6CtWps7CKmmAWgfP0maKRIB9e/pub?output=tsv'; 
+        
+        // Cabecera única obligatoria para catálogo general y por libro con el link correcto
+        const DEFAULT_HEADER_URL = 'https://i.imgur.com/IAWXNIg.jpeg'; 
 
-  console.log("🔍 Escaneando carpeta de fotos en Drive...");
-  while (archivosFotos.hasNext()) {
-    const foto = archivosFotos.next();
-    const nombreCompleto = foto.getName();
-    
-    if (nombreCompleto.match(/^\d+\.(jpg|jpeg|png|webp)$/i)) {
-      const codigoFoto = nombreCompleto.split('.')[0].trim();
-      mapaFotos[codigoFoto] = foto;
-    }
-  }
+        let allProducts = [];
+        let categorySettings = {}; 
+        let listCategories = new Set();
+        let listFiles = new Set();
+        
+        let currentMode = 'general'; 
+        let currentFilterValue = '';
 
-  const ultimaFila = hoja.getLastRow();
-  let contadorRellenados = 0;
-  let contadorNuevos = 0;
-  const codigosYaProcesadosEnHoja = [];
+        const urlParams = new URLSearchParams(window.location.search);
+        const isClientView = urlParams.get('view') === 'cliente';
 
-  if (ultimaFila >= 2) {
-    const rangoDatos = hoja.getRange(2, 1, ultimaFila - 1, 8);
-    const valoresHoja = rangoDatos.getValues();
-
-    console.log("🛠️ Procesando fotos para rellenar los que NO tienen link...");
-
-    for (let i = 0; i < valoresHoja.length; i++) {
-      const filaReal = i + 2;
-      const linkActual = valoresHoja[i][1]; 
-      const codigoFila = valoresHoja[i][7] ? valoresHoja[i][7].toString().trim() : ""; 
-
-      if (codigoFila !== "") {
-        codigosYaProcesadosEnHoja.push(codigoFila); // Registramos que este código ya existe en la hoja
-
-        // REGLA CRÍTICA: Solo sube foto si el Link Actual ESTÁ VACÍO y la foto existe en el Drive
-        // Si ya tiene link, no hace absolutamente nada con la imagen.
-        if ((!linkActual || linkActual.toString().trim() === "") && mapaFotos[codigoFila]) {
-          const fotoAProcesar = mapaFotos[codigoFila];
-          
-          try {
-            const blob = fotoAProcesar.getBlob();
-            const resultadoLink = subirAImgBBConReintento(blob);
+        if (isClientView) {
+            document.querySelector('.controls-wrapper').style.display = 'none';
+            document.querySelector('.web-header').style.display = 'none';
             
-            hoja.getRange(filaReal, 2).setValue(resultadoLink);
-            
-            if (resultadoLink.startsWith("http")) {
-              hoja.getRange(filaReal, 1).setFormula(`=IMAGE(B${filaReal})`);
-              hoja.setRowHeight(filaReal, 300);
-              hoja.setColumnWidth(1, 300);
+            document.getElementById('productGrid').innerHTML = `
+                <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 40vh; text-align: center;">
+                    <img src="http://googleusercontent.com/image_collection/image_retrieval/8490127715225572213_0" alt="Logo Mirna" style="max-width: 250px; margin-bottom: 25px;">
+                    <button class="btn-action primary" onclick="loadClientCatalog()" style="max-width: 350px; padding: 15px 30px; font-size: 16px;">🛍️ Ver Mi Catálogo Especial</button>
+                </div>
+            `;
+        } else {
+            loadAdminData().then(success => {
+                if(success) switchMode('general');
+            });
+        }
+
+        function openAdminModal() {
+            const panel = document.getElementById('adminPanel');
+            if (panel.style.display === 'flex') {
+                panel.style.display = 'none'; 
+                return;
+            }
+            document.getElementById('securityModal').style.display = 'flex';
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('adminPasswordInput').focus();
+        }
+
+        function closeAdminModal() {
+            document.getElementById('securityModal').style.display = 'none';
+        }
+
+        function verifyAdmin() {
+            const pass = document.getElementById('adminPasswordInput').value;
+            if (pass === "Catalago123") {
+                closeAdminModal();
+                document.getElementById('adminPanel').style.display = 'flex';
+                document.getElementById('adminPanel').scrollIntoView({ behavior: 'smooth' });
             } else {
-              hoja.getRange(filaReal, 1).clearContent();
+                alert("❌ Clave incorrecta. Inténtalo de nuevo.");
+                document.getElementById('adminPasswordInput').value = '';
+            }
+        }
+
+        document.getElementById('adminPasswordInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') verifyAdmin();
+        });
+
+        function performSearch() {
+            const term = document.getElementById('searchInput').value.trim().toLowerCase();
+            
+            if (term === '') {
+                if (currentFilterValue !== '') {
+                    const typeToApply = currentMode === 'categoria' ? 'category' : 'file';
+                    applyFilter(typeToApply, currentFilterValue, null);
+                } else {
+                    switchMode(currentMode);
+                }
+                return;
+            }
+
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#filterContainer .cat-btn').forEach(b => b.classList.remove('active'));
+            
+            const filtered = allProducts.filter(p => 
+                p.sku.toLowerCase().includes(term) || 
+                p.title.toLowerCase().includes(term)
+            );
+            
+            applyTheme('general');
+            renderProducts(filtered);
+        }
+
+        async function loadClientCatalog() {
+            document.getElementById('productGrid').innerHTML = '<div class="status-message">Preparando tu catálogo, por favor espera...⏳</div>';
+            const success = await fetchDataFromGoogle();
+            
+            if (success) {
+                const filterType = urlParams.get('type');
+                const filterVal = urlParams.get('val');
+
+                if (filterType === 'cat' && filterVal) {
+                    applyTheme(filterVal);
+                    renderProducts(allProducts.filter(p => p.category === filterVal));
+                } else if (filterType === 'file' && filterVal) {
+                    applyTheme('general'); 
+                    renderProducts(allProducts.filter(p => p.file === filterVal));
+                } else {
+                    applyTheme('general');
+                    renderProducts(allProducts);
+                }
+            } else {
+                document.getElementById('productGrid').innerHTML = '<div class="status-message" style="color:red;">Hubo un problema de conexión. Por favor recarga la página.</div>';
+            }
+        }
+
+        async function loadAdminData() {
+            const btnText = document.getElementById('syncText');
+            if(btnText) btnText.innerHTML = "Descargando...";
+            
+            const success = await fetchDataFromGoogle();
+            
+            if(success) {
+                if(btnText) btnText.innerHTML = "🔄 Refrescar Datos";
+                
+                const searchTerm = document.getElementById('searchInput').value.trim();
+                if (searchTerm !== '') {
+                    performSearch();
+                } else if (currentFilterValue !== '') {
+                    const typeToApply = currentMode === 'categoria' ? 'category' : 'file';
+                    applyFilter(typeToApply, currentFilterValue, null);
+                } else {
+                    switchMode(currentMode); 
+                }
+                return true;
+            } else {
+                if(btnText) btnText.innerHTML = "❌ Error (Reintentar)";
+                setTimeout(() => { if(btnText) btnText.innerHTML = "🔄 Refrescar Datos"; }, 3000);
+                return false;
+            }
+        }
+
+        async function fetchDataFromGoogle() {
+            try {
+                const cacheBuster = `&v=${new Date().getTime()}`;
+                const response = await fetch(SHEET_URL + cacheBuster);
+                if (!response.ok) throw new Error("No se pudo leer el archivo");
+                
+                const data = await response.text();
+                parseTSV(data);
+                return true;
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                return false;
+            }
+        }
+
+        function parseTSV(data) {
+            const rows = data.split('\n');
+            allProducts = [];
+            listCategories = new Set();
+            listFiles = new Set();
+            categorySettings = {}; 
+            
+            for(let i = 1; i < rows.length; i++) {
+                const cols = rows[i].split('\t');
+                if(cols.length >= 4 && cols[1] !== undefined && cols[1].trim() !== "") {
+                    const product = {
+                        image: cols[1] ? cols[1].trim() : '',       
+                        category: cols[2] ? cols[2].trim() : '',    
+                        title: cols[3] ? cols[3].trim() : '',       
+                        file: cols[4] ? cols[4].trim() : '', 
+                        obs: cols[5] ? cols[5].trim() : '',         
+                        cantidadBulto: cols[6] ? cols[6].trim() : '', 
+                        sku: cols[7] ? cols[7].trim() : ''          
+                    };
+                    allProducts.push(product);
+                    
+                    if(product.category) listCategories.add(product.category);
+                    if(product.file) listFiles.add(product.file);
+
+                    if (product.category && !categorySettings[product.category]) {
+                        if ((cols[8] && cols[8].trim()) || (cols[9] && cols[9].trim()) || (cols[10] && cols[10].trim())) {
+                            categorySettings[product.category] = {
+                                header: cols[8] ? cols[8].trim() : '',
+                                footer: cols[9] ? cols[9].trim() : '', 
+                                bg: cols[10] ? cols[10].trim() : ''    
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        function switchMode(mode) {
+            document.getElementById('searchInput').value = ''; 
+
+            currentMode = mode;
+            currentFilterValue = '';
+            
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btnMode' + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add('active');
+
+            const container = document.getElementById('filterContainer');
+            container.innerHTML = '';
+
+            if (mode === 'general') {
+                applyTheme('general'); 
+                renderProducts(allProducts);
+            } else if (mode === 'categoria') {
+                applyTheme('general');
+                Array.from(listCategories).filter(c => c !== "").sort().forEach(cat => {
+                    container.innerHTML += `<button class="cat-btn" onclick="applyFilter('category', '${cat}', this)">${cat}</button>`;
+                });
+                document.getElementById('productGrid').innerHTML = '<div class="status-message">👆 Selecciona una Categoría arriba para ver los productos.</div>';
+            } else if (mode === 'archivo') {
+                applyTheme('general');
+                Array.from(listFiles).filter(f => f !== "").sort().forEach(file => {
+                    container.innerHTML += `<button class="cat-btn" onclick="applyFilter('file', '${file}', this)">${file}</button>`;
+                });
+                document.getElementById('productGrid').innerHTML = '<div class="status-message">👆 Selecciona un Archivo arriba para ver los productos.</div>';
+            }
+        }
+
+        function applyFilter(type, value, btnElement) {
+            document.getElementById('searchInput').value = ''; 
+
+            currentFilterValue = value;
+            
+            if(btnElement) {
+                document.querySelectorAll('#filterContainer .cat-btn').forEach(b => b.classList.remove('active'));
+                btnElement.classList.add('active');
+            } else {
+                document.querySelectorAll('#filterContainer .cat-btn').forEach(b => {
+                    if (b.innerText === value) b.classList.add('active');
+                });
+            }
+
+            let filtered = [];
+            if (type === 'category') {
+                applyTheme(value); 
+                filtered = allProducts.filter(p => p.category === value);
+            } else if (type === 'file') {
+                // Al filtrar por archivo (libro), se usa el tema general (con la imagen única de cabecera)
+                applyTheme('general'); 
+                filtered = allProducts.filter(p => p.file === value);
+            }
+            renderProducts(filtered);
+        }
+
+        function applyTheme(category) {
+            const sheet = document.getElementById('a4Sheet');
+            const header = document.getElementById('catalogHeader');
+            const footer = document.getElementById('catalogFooter');
+            
+            // Siempre por defecto el link solicitado
+            let headerSrc = DEFAULT_HEADER_URL;
+            let footerSrc = 'pie_local.jpg';
+            let bgImg = 'none';
+
+            // Si hay una configuración específica en la categoría para el header, footer o background, lo aplica
+            if (category !== 'general' && categorySettings[category]) {
+                if (categorySettings[category].header) headerSrc = categorySettings[category].header;
+                if (categorySettings[category].footer) footerSrc = categorySettings[category].footer;
+                if (categorySettings[category].bg) bgImg = `url('${categorySettings[category].bg}')`;
             }
             
-            contadorRellenados++;
-            delete mapaFotos[codigoFila]; // La quitamos del mapa para no duplicarla
-            Utilities.sleep(5000);
-            
-          } catch (error) {
-            console.log(`❌ Error inesperado procesando foto en código ${codigoFila}: ${error.toString()}`);
-          }
+            header.src = headerSrc;
+            footer.src = footerSrc;
+            sheet.style.backgroundImage = bgImg;
         }
-      }
-    }
-  }
 
-  console.log("🚀 Procesando imágenes sobrantes en Drive (Códigos Nuevos que no estaban en la hoja)...");
-  
-  for (const codigoNuevo in mapaFotos) {
-    // Si el código ya estaba en la hoja, lo saltamos (aunque no tuviera foto) para evitar duplicados.
-    if (codigosYaProcesadosEnHoja.includes(codigoNuevo)) continue;
+        function renderProducts(products) {
+            const grid = document.getElementById('productGrid');
+            grid.innerHTML = '';
+            
+            if(products.length === 0) {
+                grid.innerHTML = '<div class="status-message">No se encontraron productos en esta sección.</div>';
+                return;
+            }
 
-    const fotoNueva = mapaFotos[codigoNuevo];
-    
-    try {
-      const blob = fotoNueva.getBlob();
-      const resultadoLink = subirAImgBBConReintento(blob);
-      
-      const nombreProducto = baseDeDatos[codigoNuevo] ? baseDeDatos[codigoNuevo].nombre : "⚠️ No registrado";
-      const categoriaProducto = baseDeDatos[codigoNuevo] ? baseDeDatos[codigoNuevo].categoria : "";
-      const archivoCortoProducto = baseDeDatos[codigoNuevo] ? baseDeDatos[codigoNuevo].archivoCorto : "";
-      const cantidadBultoProducto = baseDeDatos[codigoNuevo] ? baseDeDatos[codigoNuevo].cantidadBulto : "";
-      
-      const nuevaFilaIndex = hoja.getLastRow() + 1;
-      
-      hoja.appendRow([
-        resultadoLink.startsWith("http") ? `=IMAGE(B${nuevaFilaIndex})` : "", 
-        resultadoLink, 
-        categoriaProducto, 
-        nombreProducto, 
-        archivoCortoProducto, 
-        "", 
-        cantidadBultoProducto, 
-        codigoNuevo
-      ]);
-      
-      if (resultadoLink.startsWith("http")) {
-        hoja.setRowHeight(nuevaFilaIndex, 300);
-        hoja.setColumnWidth(1, 300);
-      }
-      
-      contadorNuevos++;
-      Utilities.sleep(5000);
-      
-    } catch (error) {
-      console.log(`❌ Error procesando foto nueva ${codigoNuevo}: ${error.toString()}`);
-    }
-  }
+            products.forEach(p => {
+                const categoryHTML = p.category ? `<div class="product-category">${p.category}</div>` : '';
+                const skuHTML = p.sku ? `<div class="product-sku">SKU: ${p.sku}</div>` : '';
+                const titleHTML = p.title ? `<div class="product-title">${p.title}</div>` : '';
+                const obsHTML = p.obs ? `<div class="product-obs">📌 ${p.obs}</div>` : '';
+                const bultoHTML = p.cantidadBulto ? `<div class="product-bulto">📦 Bulto: ${p.cantidadBulto} u.</div>` : '';
+                
+                grid.innerHTML += `
+                    <div class="product-card">
+                        <div class="photo-frame">
+                            <img src="${p.image}" loading="lazy" alt="Producto" onerror="this.src='https://placehold.co/300x300/f1f2f6/a4b0be?text=Sin+Imagen'">
+                        </div>
+                        <div class="product-info">
+                            ${categoryHTML}
+                            ${skuHTML}
+                            ${titleHTML}
+                            ${obsHTML}
+                            ${bultoHTML}
+                        </div>
+                    </div>
+                `;
+            });
+        }
 
-  actualizarReporteBaseFinal(baseDeDatos, hoja);
-  console.log(`🎉 ¡Proceso completado! Se procesaron ${contadorRellenados} huecos y ${contadorNuevos} filas nuevas.`);
-}
+        function compartirCatalogo() {
+            let baseUrl = window.location.href.split('?')[0];
+            let shareUrl = baseUrl + "?view=cliente";
+            
+            if (currentMode === 'categoria' && currentFilterValue !== '') {
+                shareUrl += "&type=cat&val=" + encodeURIComponent(currentFilterValue);
+            } else if (currentMode === 'archivo' && currentFilterValue !== '') {
+                shareUrl += "&type=file&val=" + encodeURIComponent(currentFilterValue);
+            } else if (currentMode === 'general') {
+                // Comparte catálogo completo general
+            } else {
+                alert("⚠️ Primero selecciona la categoría o archivo específico que deseas compartir.");
+                return;
+            }
 
-// ==========================================
-// 🌐 CONEXIÓN CON LA INTERFAZ WEB (FRONTEND)
-// ==========================================
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile('Index')
-      .setTitle('Catálogo Mirna')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert("✅ ¡Micro-Link Copiado!\n\nPuedes pegarlo en WhatsApp. Tu cliente verá una pantalla limpia lista para cargar los productos.");
+            }).catch(err => {
+                prompt("Copia este enlace manualmente:", shareUrl);
+            });
+        }
 
-function ejecutarSincronizacionTotal() {
-  automatizarConversionExcel();
-  procesarFotosDriveAImgBB(); 
-  return "Sincronización total completada con éxito.";
-}
+        function descargarPDF() {
+            if (allProducts.length === 0) {
+                alert("⚠️ Primero debes cargar un catálogo para poder exportarlo.");
+                return;
+            }
+            alert("💡 PARA GUARDAR EL PDF:\n\n1. En la ventana que se abrirá, cambia la opción 'Impresora' o 'Destino' a 'Guardar como PDF'.\n2. Haz clic en Guardar.\n\nEsto garantiza un archivo súper ligero ideal para WhatsApp.");
+            window.print();
+        }
+
+        function triggerBackend(functionName, loadingMessage) {
+            const statusDiv = document.getElementById('adminStatus');
+            statusDiv.innerHTML = `⏳ <b>Procesando:</b> ${loadingMessage}`;
+            
+            if (typeof google !== 'undefined' && google.script) {
+                document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = true);
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        statusDiv.innerHTML = `✅ <b>¡Éxito!</b> Tarea completada.`;
+                        document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = false);
+                        loadAdminData(); 
+                    })
+                    .withFailureHandler(function(error) {
+                        statusDiv.innerHTML = `❌ <b>Error:</b> ${error.message} (Intenta nuevamente)`;
+                        document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = false);
+                    })
+                    [functionName](); 
+            } else {
+                statusDiv.innerHTML = `⚠️ <b>Error de Entorno:</b> La web debe estar desplegada como una 'Aplicación Web' dentro de Google Apps Script para usar las herramientas internas.`;
+            }
+        }
+    </script>
+</body>
+</html>
