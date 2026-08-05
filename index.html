@@ -13,7 +13,7 @@
            VARIABLES DE COLOR & ESTILOS GLOBALES
            ========================================== */
         :root {
-            --primary-blue: #801e1e;     /* Granate de la marca */
+            --primary-blue: #801e1e;     
             --soft-blue: #faeaea;        
             --border-blue: #e8caca;      
             --text-dark: #2d3436;        
@@ -178,15 +178,7 @@
         .a4-sheet {
             max-width: 210mm; margin: 0 auto; background-color: var(--bg-white); box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             min-height: 297mm; background-size: cover; background-position: top center; background-repeat: no-repeat; display: flex; flex-direction: column;
-            overflow: hidden; /* Asegurar que nada sobresalga */
-        }
-
-        /* --- NUEVO: Estilos para Banner Dinámico --- */
-        .dynamic-header {
-            width: 100%;
-            position: relative;
-            display: flex;
-            align-items: center;
+            overflow: hidden; 
         }
 
         .catalog-header-img { 
@@ -194,33 +186,6 @@
             height: auto; 
             display: block; 
             background-color: var(--soft-blue); 
-        }
-
-        .header-title-overlay {
-            position: absolute;
-            right: 40px; /* Posicionamiento a la derecha sobre el banner blanco */
-            top: 50%;
-            transform: translateY(-50%);
-            font-weight: 700;
-            font-size: 32px; /* Tamaño grande para título */
-            color: var(--primary-blue); /* Granate de la marca */
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            max-width: 60%; /* Evitar que el texto choque con el logo de la izquierda si es muy largo */
-            text-align: right;
-            display: none; /* Oculto por defecto */
-        }
-
-        @media (max-width: 768px) {
-            .header-title-overlay {
-                font-size: 20px;
-                right: 20px;
-            }
-        }
-
-        /* --- Estilos antiguos de cabecera (fallback si no se carga el dynamic) --- */
-        #catalogHeader.legacy-img {
-            background-color: var(--primary-blue);
         }
 
         .catalog-footer-img { width: 100%; height: auto; display: block; margin-top: auto; background-color: var(--text-dark); }
@@ -292,7 +257,6 @@
 
         <div class="categories" id="filterContainer"></div>
         
-        <!-- BUSCADOR GLOBAL -->
         <div class="search-container">
             <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar por código o palabra clave..." oninput="performSearch()">
         </div>
@@ -322,14 +286,8 @@
     </div>
 
     <div class="a4-sheet" id="a4Sheet">
-        <!-- --- NUEVO: Estructura de Cabecera Dinámica --- -->
-        <div class="dynamic-header" id="headerContainer">
-            <img id="headerImage" src="" class="catalog-header-img" alt="Cabecera">
-            <div id="headerTitle" class="header-title-overlay"></div>
-        </div>
-
-        <!-- Mantenemos la etiqueta antigua para fallback en carga inicial -->
-        <img id="catalogHeader" src="" style="display:none;" onerror="this.src='https://placehold.co/2480x350/801e1e/ffffff?text=Banner+Cabecera'">
+        <!-- Banner estático para todas las vistas -->
+        <img id="catalogHeader" src="https://i.imgur.com/xV7KN3y.jpeg" class="catalog-header-img" alt="Cabecera">
 
         <div class="catalog-container">
             <div class="grid" id="productGrid">
@@ -354,9 +312,8 @@
     <script>
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSxFbafMVZW4D1uok55e5sZyTcuWIXxDMFHoQuknZeE77l29zWbHmc6CtWps7CKmmAWgfP0maKRIB9e/pub?output=tsv'; 
         
-        // --- NUEVO: Enlaces de Banners Fijos ---
-        const BANNER_GENERAL_URL = 'https://i.imgur.com/IAWXNIg.jpeg'; // Banner rojo (Catálogo Completo)
-        const BANNER_LIBRO_BASE_URL = 'https://i.imgur.com/xV7KN3y.jpeg'; // Banner blanco base (Para sobreponer texto)
+        // Cabecera única obligatoria para catálogo general y por libro
+        const DEFAULT_HEADER_URL = 'https://i.imgur.com/xV7KN3y.jpeg'; 
 
         let allProducts = [];
         let categorySettings = {}; 
@@ -366,9 +323,6 @@
         let currentMode = 'general'; 
         let currentFilterValue = '';
 
-        // ==========================================
-        // CONTROL DE VISTAS (CLIENTE VS ADMIN)
-        // ==========================================
         const urlParams = new URLSearchParams(window.location.search);
         const isClientView = urlParams.get('view') === 'cliente';
 
@@ -388,9 +342,6 @@
             });
         }
 
-        // ==========================================
-        // LÓGICA DEL MODAL DE SEGURIDAD
-        // ==========================================
         function openAdminModal() {
             const panel = document.getElementById('adminPanel');
             if (panel.style.display === 'flex') {
@@ -408,7 +359,6 @@
 
         function verifyAdmin() {
             const pass = document.getElementById('adminPasswordInput').value;
-            // Clave sencilla hardcodeada
             if (pass === "Catalago123") {
                 closeAdminModal();
                 document.getElementById('adminPanel').style.display = 'flex';
@@ -423,14 +373,10 @@
             if (e.key === 'Enter') verifyAdmin();
         });
 
-        // ==========================================
-        // FUNCIONES DE BÚSQUEDA EN TIEMPO REAL
-        // ==========================================
         function performSearch() {
             const term = document.getElementById('searchInput').value.trim().toLowerCase();
             
             if (term === '') {
-                // Si borran el buscador, regresamos a lo que estaban viendo antes
                 if (currentFilterValue !== '') {
                     const typeToApply = currentMode === 'categoria' ? 'category' : 'file';
                     applyFilter(typeToApply, currentFilterValue, null);
@@ -440,24 +386,18 @@
                 return;
             }
 
-            // Desmarcar todas las pestañas y filtros visualmente mientras se busca
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('#filterContainer .cat-btn').forEach(b => b.classList.remove('active'));
             
-            // Buscar coincidencias en Título (Col D) y SKU (Col H)
             const filtered = allProducts.filter(p => 
                 p.sku.toLowerCase().includes(term) || 
                 p.title.toLowerCase().includes(term)
             );
             
-            // --- NUEVO: Aplicar banner General al buscar ---
-            actualizarBannerDePagina('general', null);
+            applyTheme('general');
             renderProducts(filtered);
         }
 
-        // ==========================================
-        // FUNCIONES DE DESCARGA DE DATOS
-        // ==========================================
         async function loadClientCatalog() {
             document.getElementById('productGrid').innerHTML = '<div class="status-message">Preparando tu catálogo, por favor espera...⏳</div>';
             const success = await fetchDataFromGoogle();
@@ -467,16 +407,13 @@
                 const filterVal = urlParams.get('val');
 
                 if (filterType === 'cat' && filterVal) {
-                    // Carga de vista cliente por categoría (Aplicamos banner General)
-                    actualizarBannerDePagina('general', null);
+                    applyTheme(filterVal);
                     renderProducts(allProducts.filter(p => p.category === filterVal));
                 } else if (filterType === 'file' && filterVal) {
-                    // Carga de vista cliente por Libro/Archivo specific (Banner dinámico blanco)
-                    actualizarBannerDePagina('archivo', filterVal);
+                    applyTheme('general'); 
                     renderProducts(allProducts.filter(p => p.file === filterVal));
                 } else {
-                    // Carga general de vista cliente (Banner General)
-                    actualizarBannerDePagina('general', null);
+                    applyTheme('general');
                     renderProducts(allProducts);
                 }
             } else {
@@ -493,7 +430,6 @@
             if(success) {
                 if(btnText) btnText.innerHTML = "🔄 Refrescar Datos";
                 
-                // Re-aplica estado actual tras refrescar
                 const searchTerm = document.getElementById('searchInput').value.trim();
                 if (searchTerm !== '') {
                     performSearch();
@@ -513,7 +449,6 @@
 
         async function fetchDataFromGoogle() {
             try {
-                // Cache buster para asegurar datos frescos
                 const cacheBuster = `&v=${new Date().getTime()}`;
                 const response = await fetch(SHEET_URL + cacheBuster);
                 if (!response.ok) throw new Error("No se pudo leer el archivo");
@@ -536,13 +471,12 @@
             
             for(let i = 1; i < rows.length; i++) {
                 const cols = rows[i].split('\t');
-                // Col B (Imagen) es obligatoria
                 if(cols.length >= 4 && cols[1] !== undefined && cols[1].trim() !== "") {
                     const product = {
                         image: cols[1] ? cols[1].trim() : '',       
                         category: cols[2] ? cols[2].trim() : '',    
                         title: cols[3] ? cols[3].trim() : '',       
-                        file: cols[4] ? cols[4].trim() : '', // Col E: Archivo/Libro
+                        file: cols[4] ? cols[4].trim() : '', 
                         obs: cols[5] ? cols[5].trim() : '',         
                         cantidadBulto: cols[6] ? cols[6].trim() : '', 
                         sku: cols[7] ? cols[7].trim() : ''          
@@ -552,13 +486,12 @@
                     if(product.category) listCategories.add(product.category);
                     if(product.file) listFiles.add(product.file);
 
-                    // Configuración de temas por categoría (Headers/Footers/BGs específicos - Columnas I, J, K)
                     if (product.category && !categorySettings[product.category]) {
                         if ((cols[8] && cols[8].trim()) || (cols[9] && cols[9].trim()) || (cols[10] && cols[10].trim())) {
                             categorySettings[product.category] = {
-                                // No usamos header aquí por el nuevo dynamic header
-                                footer: cols[9] ? cols[9].trim() : '', // Col J: Footer
-                                bg: cols[10] ? cols[10].trim() : ''    // Col K: Fondo de Hoja
+                                header: cols[8] ? cols[8].trim() : '',
+                                footer: cols[9] ? cols[9].trim() : '', 
+                                bg: cols[10] ? cols[10].trim() : ''    
                             };
                         }
                     }
@@ -566,11 +499,8 @@
             }
         }
 
-        // ==========================================
-        // INTERFAZ Y RENDERIZADO
-        // ==========================================
         function switchMode(mode) {
-            document.getElementById('searchInput').value = ''; // Limpiar buscador al cambiar de pestaña
+            document.getElementById('searchInput').value = ''; 
 
             currentMode = mode;
             currentFilterValue = '';
@@ -582,21 +512,16 @@
             container.innerHTML = '';
 
             if (mode === 'general') {
-                // --- NUEVO: Aplicar banner General al modo completo ---
-                actualizarBannerDePagina('general', null);
-                // Fallback para footers/bgs generales (si los hay definidos en theme general)
-                applyOldThemeSettings('general'); 
+                applyTheme('general'); 
                 renderProducts(allProducts);
             } else if (mode === 'categoria') {
-                // Al cambiar a pestaña, banner General por defecto antes de seleccionar
-                actualizarBannerDePagina('general', null);
+                applyTheme('general');
                 Array.from(listCategories).filter(c => c !== "").sort().forEach(cat => {
                     container.innerHTML += `<button class="cat-btn" onclick="applyFilter('category', '${cat}', this)">${cat}</button>`;
                 });
                 document.getElementById('productGrid').innerHTML = '<div class="status-message">👆 Selecciona una Categoría arriba para ver los productos.</div>';
             } else if (mode === 'archivo') {
-                // Al cambiar a pestaña, banner General por defecto antes de seleccionar
-                actualizarBannerDePagina('general', null);
+                applyTheme('general');
                 Array.from(listFiles).filter(f => f !== "").sort().forEach(file => {
                     container.innerHTML += `<button class="cat-btn" onclick="applyFilter('file', '${file}', this)">${file}</button>`;
                 });
@@ -605,11 +530,10 @@
         }
 
         function applyFilter(type, value, btnElement) {
-            document.getElementById('searchInput').value = ''; // Limpiar buscador si seleccionan filtro
+            document.getElementById('searchInput').value = ''; 
 
             currentFilterValue = value;
             
-            // Gestión visual de botones activos
             if(btnElement) {
                 document.querySelectorAll('#filterContainer .cat-btn').forEach(b => b.classList.remove('active'));
                 btnElement.classList.add('active');
@@ -621,68 +545,36 @@
 
             let filtered = [];
             if (type === 'category') {
-                // --- NUEVO: Usar banner General para filtros de categoría ---
-                actualizarBannerDePagina('general', null);
-                applyOldThemeSettings(value); // Mantener Footers/BGs específicos si los hay
+                applyTheme(value); 
                 filtered = allProducts.filter(p => p.category === value);
             } else if (type === 'file') {
-                // --- NUEVO: Usar banner DINÁMICO para filtros de libro/archivo ---
-                actualizarBannerDePagina('archivo', value);
-                // Resetear footers/bgs específicos a general para que no choque con el banner blanco
-                applyOldThemeSettings('general'); 
+                // Al filtrar por archivo (libro), se usa el tema general (con la imagen única de cabecera)
+                applyTheme('general'); 
                 filtered = allProducts.filter(p => p.file === value);
             }
             renderProducts(filtered);
         }
 
-        // --- NUEVA FUNCIÓN: Gestión de Banners Dinámicos ---
-        function actualizarBannerDePagina(modo, valorDeFiltro) {
-            const container = document.getElementById('headerContainer');
-            const imgEl = document.getElementById('headerImage');
-            const titleOverlay = document.getElementById('headerTitle');
+        function applyTheme(category) {
             const sheet = document.getElementById('a4Sheet');
-
-            // Resetear estado
-            imgEl.onerror = null; // Quitar onError previo si existe
-
-            if (modo === 'archivo' && valorDeFiltro) {
-                // Vista por libro/archivo specific: Banner blanco base + Texto sobrepuesto
-                imgEl.src = BANNER_LIBRO_BASE_URL;
-                titleOverlay.innerText = valorDeFiltro; // Ponemos el nombre del archivo (ej: IMP.1209 LUCES)
-                titleOverlay.style.display = 'block';
-                // Asegurar que el fondo de la hoja sea blanco para combinar
-                sheet.style.backgroundImage = 'none'; 
-            } else {
-                // Catálogo Completo o Categoría (u otro estado): Banner rojo/granate fijo
-                imgEl.src = BANNER_GENERAL_URL;
-                titleOverlay.innerText = '';
-                titleOverlay.style.display = 'none';
-                // onError fallback por seguridad para el general
-                imgEl.onerror = function() { this.src='https://placehold.co/2480x350/801e1e/ffffff?text=Cabecera+Mirna'; };
-            }
-        }
-
-        // --- FUNCIÓN ANTIGUA ADAPTADA: Gestión de Footers y BGs definidos en TSV (Col J, K) ---
-        function applyOldThemeSettings(category) {
-            const sheet = document.getElementById('a4Sheet');
+            const header = document.getElementById('catalogHeader');
             const footer = document.getElementById('catalogFooter');
             
+            // Siempre por defecto el link solicitado
+            let headerSrc = DEFAULT_HEADER_URL;
             let footerSrc = 'pie_local.jpg';
             let bgImg = 'none';
 
+            // Si hay una configuración específica en la categoría para el header, footer o background, lo aplica
             if (category !== 'general' && categorySettings[category]) {
+                if (categorySettings[category].header) headerSrc = categorySettings[category].header;
                 if (categorySettings[category].footer) footerSrc = categorySettings[category].footer;
                 if (categorySettings[category].bg) bgImg = `url('${categorySettings[category].bg}')`;
             }
             
+            header.src = headerSrc;
             footer.src = footerSrc;
-            
-            // Solo aplicamos BG de hoja si NO estamos en vista por libro (banner blanco dinámico)
-            if (currentMode !== 'archivo' || currentFilterValue === '') {
-                 sheet.style.backgroundImage = bgImg;
-            } else {
-                 sheet.style.backgroundImage = 'none';
-            }
+            sheet.style.backgroundImage = bgImg;
         }
 
         function renderProducts(products) {
@@ -718,9 +610,6 @@
             });
         }
 
-        // ==========================================
-        // FUNCIONES DE COMPARTIR Y EXPORTAR
-        // ==========================================
         function compartirCatalogo() {
             let baseUrl = window.location.href.split('?')[0];
             let shareUrl = baseUrl + "?view=cliente";
@@ -752,9 +641,6 @@
             window.print();
         }
 
-        // ==========================================
-        // FUNCIONES DE SINCRONIZACIÓN BACKEND
-        // ==========================================
         function triggerBackend(functionName, loadingMessage) {
             const statusDiv = document.getElementById('adminStatus');
             statusDiv.innerHTML = `⏳ <b>Procesando:</b> ${loadingMessage}`;
@@ -765,7 +651,7 @@
                     .withSuccessHandler(function(response) {
                         statusDiv.innerHTML = `✅ <b>¡Éxito!</b> Tarea completada.`;
                         document.querySelectorAll('.admin-panel button').forEach(b => b.disabled = false);
-                        loadAdminData(); // Refrescar vista tras backend
+                        loadAdminData(); 
                     })
                     .withFailureHandler(function(error) {
                         statusDiv.innerHTML = `❌ <b>Error:</b> ${error.message} (Intenta nuevamente)`;
