@@ -1,1 +1,477 @@
-wwe
+// ==========================================
+// ⚙️ CONFIGURACIÓN GENERAL
+// ==========================================
+const IMGBB_API_KEY = '82ede8cbc421f15041cfe4cb2624b384';
+const ID_CARPETA_DRIVE_FOTOS = '1UArUWX4B83jy-HBnFW_sVis2-hElYy63'; 
+const ID_HOJA_CALCULO = '1viRHY8cGQ5T9AYzDjlAd8XLAQdhR_6rMHD5TBHKYgkM'; 
+const ID_CARPETA_INVENTARIOS = '1rHqBvVvw9Gxp3U1rbLTYj5xwT06x2C8T'; 
+
+// ==========================================
+// 🎨 FUNCIONES DE INTERFAZ Y MENÚ
+// ==========================================
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('🖼️ Catálogo Mirna')
+      .addItem('Generar imágenes en Columna A', 'actualizarImagenesMasivo')
+      .addItem('Actualizar listado en Base Final', 'ejecutarReporteManual')
+      .addToUi();
+}
+
+function actualizarImagenesMasivo() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var lastRow = sheet.getLastRow();
+  
+  if (lastRow < 2) return; 
+  
+  var rangeB = sheet.getRange(2, 2, lastRow - 1, 1);
+  var urls = rangeB.getValues();
+  var formulas = [];
+  
+  for (var i = 0; i < urls.length; i++) {
+    var url = urls[i][0];
+    if (url && url.toString().trim() !== "") {
+      formulas.push(['=IMAGE(B' + (i + 2) + ')']);
+    } else {
+      formulas.push(['']);
+    }
+  }
+  
+  var rangeA = sheet.getRange(2, 1, lastRow - 1, 1);
+  rangeA.setFormulas(formulas);
+  
+  sheet.setColumnWidth(1, 300);
+  sheet.setRowHeights(2, lastRow - 1, 300);
+}
+
+function onEdit(e) {
+  if (!e || !e.range) return;
+  var range = e.range;
+  var sheet = range.getSheet();
+  
+  if (range.getColumn() == 2 && range.getRow() > 1) {
+    var row = range.getRow();
+    var url = e.value; 
+    
+    var cellA = sheet.getRange(row, 1);
+    
+    if (url && url.toString().trim() !== "") {
+      cellA.setFormula('=IMAGE(B' + row + ')');
+      sheet.setRowHeight(row, 300);
+      sheet.setColumnWidth(1, 300); 
+    } else {
+      cellA.clearContent();
+    }
+  }
+}
+
+// ==========================================
+// 🧹 FUNCIONES DE LIMPIEZA Y CATEGORIZACIÓN
+// ==========================================
+function limpiarTexto(texto) {
+  if (!texto) return "";
+  
+  let limpio = texto.toString().toLowerCase();
+
+  limpio = limpio.replace(/±/g, 'ñ');
+  limpio = limpio.replace(/navidenos/g, 'navideños');
+  limpio = limpio.replace(/navidenas/g, 'navideñas');
+  limpio = limpio.replace(/navideno/g, 'navideño');
+  limpio = limpio.replace(/navidena/g, 'navideña');
+  limpio = limpio.replace(/ninos/g, 'niños');
+  limpio = limpio.replace(/ninas/g, 'niñas');
+  limpio = limpio.replace(/nino/g, 'niño');
+  limpio = limpio.replace(/nina/g, 'niña');
+  limpio = limpio.replace(/arbol/g, 'árbol');
+  limpio = limpio.replace(/musica/g, 'música');
+  limpio = limpio.replace(/plastico/g, 'plástico');
+  limpio = limpio.replace(/metalico/g, 'metálico');
+
+  limpio = limpio.split(' ').map(palabra => {
+    if (palabra.length > 0) {
+      return palabra.charAt(0).toUpperCase() + palabra.slice(1);
+    }
+    return '';
+  }).join(' ');
+
+  const conectores = ["De", "Del", "Con", "Y", "Para", "En", "El", "La", "Los", "Las", "Un", "Una", "Por"];
+  limpio = limpio.split(' ').map((palabra, index) => {
+    if (index > 0 && conectores.includes(palabra)) {
+      return palabra.toLowerCase();
+    }
+    return palabra;
+  }).join(' ');
+
+  return limpio.trim();
+}
+
+function obtenerCategoriaPorArchivo(nombreArchivo) {
+  if (/IMP\.1203|IMP\.1210|IMP\.1212|IMP\.1233/i.test(nombreArchivo)) {
+    return "Adornos de navidad";
+  } else if (/IMP\.1220|IMP\.1232|IMP1233|IMP\.1234/i.test(nombreArchivo)) {
+    return "Muñecas";
+  } else if (/IMP\.1236|IMP\.1239|IMP\.1214|IMP\.1211/i.test(nombreArchivo)) {
+    return "Bicicletas, Patines y Scooters.";
+  } else if (/IMP\.1209/i.test(nombreArchivo)) {
+    return "Luces";
+  }
+  return ""; 
+}
+
+// ==========================================
+// 🛠️ FUNCIÓN: CONVERTIR EXCEL A GOOGLE SHEETS
+// ==========================================
+function automatizarConversionExcel() {
+  const carpeta = DriveApp.getFolderById(ID_CARPETA_INVENTARIOS);
+  const archivosExcel = carpeta.searchFiles('mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" or mimeType="application/vnd.ms-excel"');
+  
+  let contador = 0;
+  while (archivosExcel.hasNext()) {
+    const archivo = archivosExcel.next();
+    const nombreExcel = archivo.getName();
+    
+    const metadatos = {
+      name: nombreExcel.replace(/\.xlsx?/i, ''),
+      mimeType: MimeType.GOOGLE_SHEETS,         
+      parents: [ID_CARPETA_INVENTARIOS]         
+    };
+    
+    try {
+      Drive.Files.copy(metadatos, archivo.getId());
+      archivo.setTrashed(true);
+      contador++;
+    } catch (error) {
+      console.log("❌ Error al convertir " + nombreExcel + ": " + error.toString());
+    }
+  }
+}
+
+// ==========================================
+// 🧠 FUNCIÓN: LEER INVENTARIOS Y SUS ARCHIVOS
+// ==========================================
+function cargarInventarioGlobal(idCarpeta) {
+  const carpeta = DriveApp.getFolderById(idCarpeta);
+  const archivos = carpeta.getFiles();
+  const diccionarioInventario = {};
+
+  console.log("📚 Leyendo inventarios (Búsqueda inteligente dinámica en todas las columnas)...");
+
+  while (archivos.hasNext()) {
+    const archivo = archivos.next();
+    
+    if (archivo.getMimeType() === MimeType.GOOGLE_SHEETS) {
+      const nombreArchivoCompleto = archivo.getName(); 
+      const nombreArchivoCorto = nombreArchivoCompleto.split(' - ')[0].trim();
+      const categoriaArchivo = obtenerCategoriaPorArchivo(nombreArchivoCompleto); 
+      
+      const libro = SpreadsheetApp.open(archivo);
+      const hoja = libro.getSheets()[0]; 
+      const datos = hoja.getDataRange().getValues(); 
+
+      // 🔍 LÓGICA DE BÚSQUEDA DINÁMICA DE COLUMNAS (A prueba de balas)
+      let idxCodigo = 4;  // Valor por defecto (Col E)
+      let idxNombre = 5;  // Valor por defecto (Col F)
+      let idxEmpaque = 6; // Valor por defecto (Col G)
+      let idxTipo = 2;    // Valor por defecto (Col C)
+      
+      let limiteFilas = Math.min(10, datos.length); // Busca cabeceras en las primeras 10 filas
+      
+      for (let r = 0; r < limiteFilas; r++) {
+        for (let c = 0; c < datos[r].length; c++) {
+          let valorCelda = datos[r][c] ? datos[r][c].toString().toUpperCase().trim() : "";
+          
+          if (valorCelda === "CÓDIGO" || valorCelda === "CODIGO") idxCodigo = c;
+          else if (valorCelda === "NOMBRE" || valorCelda.includes("DESCRIPCIÓN") || valorCelda.includes("DESCRIPCION")) idxNombre = c;
+          else if (valorCelda.includes("EMPAQUE") || valorCelda.includes("BULTO")) idxEmpaque = c;
+          else if (valorCelda.includes("CONDICIÓN") || valorCelda.includes("CONDICION")) idxTipo = c;
+        }
+      }
+
+      for (let i = 1; i < datos.length; i++) {
+        const codigo = datos[i][idxCodigo] ? datos[i][idxCodigo].toString().trim() : ""; 
+        const nombre = datos[i][idxNombre] ? limpiarTexto(datos[i][idxNombre]) : ""; 
+        const cantidadBulto = datos[i][idxEmpaque] ? datos[i][idxEmpaque].toString().trim() : ""; 
+        const tipo = datos[i][idxTipo] ? datos[i][idxTipo].toString().trim() : ""; 
+        
+        if (codigo !== "") {
+          // Asignación directa: Si el código existe, lo actualizamos con la información más limpia
+          if (!diccionarioInventario[codigo]) {
+            diccionarioInventario[codigo] = { archivos: [] };
+          }
+          
+          diccionarioInventario[codigo].nombre = nombre;
+          diccionarioInventario[codigo].archivoCorto = nombreArchivoCorto;
+          diccionarioInventario[codigo].categoria = categoriaArchivo;
+          diccionarioInventario[codigo].tipo = tipo;
+          diccionarioInventario[codigo].cantidadBulto = cantidadBulto;
+          
+          if (!diccionarioInventario[codigo].archivos.includes(nombreArchivoCompleto)) {
+            diccionarioInventario[codigo].archivos.push(nombreArchivoCompleto);
+          }
+        }
+      }
+    }
+  }
+  return diccionarioInventario;
+}
+
+// ==========================================
+// ☁️ FUNCIÓN DE APOYO SEGURO
+// ==========================================
+function subirAImgBBConReintento(blob) {
+  const bytes = blob.getBytes();
+  if (bytes.length > 4 * 1024 * 1024) return "No cargada por peso";
+
+  const base64 = Utilities.base64Encode(bytes);
+  const url = 'https://api.imgbb.com/1/upload?key=' + IMGBB_API_KEY;
+  const opciones = {
+    'method': 'post',
+    'payload': { 'image': base64 },
+    'muteHttpExceptions': true
+  };
+
+  for (let intento = 1; intento <= 2; intento++) {
+    const respuesta = UrlFetchApp.fetch(url, opciones);
+    const codigoRespuesta = respuesta.getResponseCode();
+    
+    if (codigoRespuesta === 200) {
+      return JSON.parse(respuesta.getContentText()).data.url;
+    } else if (intento === 1) {
+      Utilities.sleep(5000); 
+    } else {
+      return "No cargada por peso";
+    }
+  }
+  return "No cargada por peso";
+}
+
+// ==========================================
+// 📊 FUNCIÓN: GENERAR REPORTE EN "Base final"
+// ==========================================
+function actualizarReporteBaseFinal(baseDeDatos, hojaPrincipal) {
+  console.log("📋 Generando compilado actualizado en 'Base final'...");
+  const libro = SpreadsheetApp.openById(ID_HOJA_CALCULO);
+  
+  let hojaReporte = libro.getSheetByName("Base final");
+  if (!hojaReporte) hojaReporte = libro.insertSheet("Base final");
+
+  const ultimaFila = hojaPrincipal.getLastRow();
+  const codigosCargados = new Set(); 
+
+  if (ultimaFila >= 2) {
+    const rangoDatos = hojaPrincipal.getRange(2, 1, ultimaFila - 1, 8).getValues();
+    for (let i = 0; i < rangoDatos.length; i++) {
+      const linkActual = rangoDatos[i][1] ? rangoDatos[i][1].toString().trim() : ""; 
+      const codigoFila = rangoDatos[i][7] ? rangoDatos[i][7].toString().trim() : ""; 
+
+      if (codigoFila !== "" && linkActual.startsWith("http")) {
+        codigosCargados.add(codigoFila);
+      }
+    }
+  }
+
+  const datosTemporales = [];
+  let maxColumnasArchivos = 0;
+
+  for (const codigoBase in baseDeDatos) {
+    const estado = codigosCargados.has(codigoBase) ? "CARGADO" : "NO CARGADO";
+    const listaArchivos = baseDeDatos[codigoBase].archivos;
+    const tipoProducto = baseDeDatos[codigoBase].tipo || ""; 
+    
+    if (listaArchivos.length > maxColumnasArchivos) maxColumnasArchivos = listaArchivos.length;
+    
+    const fila = [tipoProducto, codigoBase, estado].concat(listaArchivos);
+    datosTemporales.push(fila);
+  }
+
+  const encabezados = ["TIPO", "CÓDIGO", "ESTADO"];
+  for (let i = 1; i <= maxColumnasArchivos; i++) encabezados.push("ARCHIVO " + i);
+  
+  const datosParaEscribir = [encabezados];
+  const numColumnasTotales = encabezados.length;
+
+  for (let i = 0; i < datosTemporales.length; i++) {
+    while (datosTemporales[i].length < numColumnasTotales) datosTemporales[i].push("");
+    datosParaEscribir.push(datosTemporales[i]);
+  }
+
+  hojaReporte.clear(); 
+  hojaReporte.getRange(1, 1, datosParaEscribir.length, numColumnasTotales).setValues(datosParaEscribir);
+  hojaReporte.getRange(1, 1, 1, numColumnasTotales).setFontWeight("bold").setBackground("#FF9900").setFontColor("white");
+  hojaReporte.autoResizeColumns(1, numColumnasTotales);
+}
+
+// ==========================================
+// 🛠️ FUNCIÓN DE BARRIDO COMPLETO (Actualiza vacíos y existentes)
+// ==========================================
+function actualizarDatosFaltantesHojaPrincipal(baseDeDatos, hoja) {
+  const ultimaFila = hoja.getLastRow();
+  if (ultimaFila < 2) return;
+  
+  const rango = hoja.getRange(2, 1, ultimaFila - 1, 8);
+  const valores = rango.getValues();
+  
+  console.log("🧹 Haciendo barrido completo para inyectar Títulos Corregidos, Archivos, Empaques y Categorías...");
+
+  // Este bucle actualiza LA INFORMACIÓN TEXTUAL sin tocar los Links de Columna B (índice 1).
+  for (let i = 0; i < valores.length; i++) {
+    const codigoFila = valores[i][7] ? valores[i][7].toString().trim() : ""; 
+    
+    if (codigoFila !== "" && baseDeDatos[codigoFila]) {
+       // Fuerza actualización de Categoría (Columna C -> 3)
+       hoja.getRange(i + 2, 3).setValue(baseDeDatos[codigoFila].categoria);
+       // Fuerza actualización de TÍTULO CON ORTOGRAFÍA LIMPIA (Columna D -> 4)
+       hoja.getRange(i + 2, 4).setValue(baseDeDatos[codigoFila].nombre);
+       // Fuerza actualización Archivo Corto en Columna E (Columna E -> 5)
+       hoja.getRange(i + 2, 5).setValue(baseDeDatos[codigoFila].archivoCorto);
+       // Fuerza actualización Empaque en Columna G (Columna G -> 7)
+       hoja.getRange(i + 2, 7).setValue(baseDeDatos[codigoFila].cantidadBulto);
+    }
+  }
+}
+
+function ejecutarReporteManual() {
+  const baseDeDatos = cargarInventarioGlobal(ID_CARPETA_INVENTARIOS);
+  const libro = SpreadsheetApp.openById(ID_HOJA_CALCULO);
+  const hojaPrincipal = libro.getSheets()[0]; 
+  
+  actualizarDatosFaltantesHojaPrincipal(baseDeDatos, hojaPrincipal);
+  actualizarReporteBaseFinal(baseDeDatos, hojaPrincipal);
+}
+
+// ==========================================
+// 🚀 FUNCIÓN MAESTRA CON CONTROL DE AVISOS Y REPORTE FINAL
+// ==========================================
+function procesarFotosDriveAImgBB() {
+  const baseDeDatos = cargarInventarioGlobal(ID_CARPETA_INVENTARIOS);
+  const libro = SpreadsheetApp.openById(ID_HOJA_CALCULO);
+  const hoja = libro.getSheets()[0]; 
+  
+  // PRIMERO: Actualizamos toda la info de los códigos que ya existen en la hoja (Tengan link o no)
+  actualizarDatosFaltantesHojaPrincipal(baseDeDatos, hoja);
+  
+  const carpetaFotos = DriveApp.getFolderById(ID_CARPETA_DRIVE_FOTOS);
+  const archivosFotos = carpetaFotos.getFiles();
+  const mapaFotos = {}; 
+
+  console.log("🔍 Escaneando carpeta de fotos en Drive...");
+  while (archivosFotos.hasNext()) {
+    const foto = archivosFotos.next();
+    const nombreCompleto = foto.getName();
+    
+    if (nombreCompleto.match(/^\d+\.(jpg|jpeg|png|webp)$/i)) {
+      const codigoFoto = nombreCompleto.split('.')[0].trim();
+      mapaFotos[codigoFoto] = foto;
+    }
+  }
+
+  const ultimaFila = hoja.getLastRow();
+  let contadorRellenados = 0;
+  let contadorNuevos = 0;
+  const codigosYaProcesadosEnHoja = [];
+
+  if (ultimaFila >= 2) {
+    const rangoDatos = hoja.getRange(2, 1, ultimaFila - 1, 8);
+    const valoresHoja = rangoDatos.getValues();
+
+    console.log("🛠️ Procesando fotos para rellenar los que NO tienen link...");
+
+    for (let i = 0; i < valoresHoja.length; i++) {
+      const filaReal = i + 2;
+      const linkActual = valoresHoja[i][1]; 
+      const codigoFila = valoresHoja[i][7] ? valoresHoja[i][7].toString().trim() : ""; 
+
+      if (codigoFila !== "") {
+        codigosYaProcesadosEnHoja.push(codigoFila); // Registramos que este código ya existe en la hoja
+
+        // REGLA CRÍTICA: Solo sube foto si el Link Actual ESTÁ VACÍO y la foto existe en el Drive
+        // Si ya tiene link, no hace absolutamente nada con la imagen.
+        if ((!linkActual || linkActual.toString().trim() === "") && mapaFotos[codigoFila]) {
+          const fotoAProcesar = mapaFotos[codigoFila];
+          
+          try {
+            const blob = fotoAProcesar.getBlob();
+            const resultadoLink = subirAImgBBConReintento(blob);
+            
+            hoja.getRange(filaReal, 2).setValue(resultadoLink);
+            
+            if (resultadoLink.startsWith("http")) {
+              hoja.getRange(filaReal, 1).setFormula(`=IMAGE(B${filaReal})`);
+              hoja.setRowHeight(filaReal, 300);
+              hoja.setColumnWidth(1, 300);
+            } else {
+              hoja.getRange(filaReal, 1).clearContent();
+            }
+            
+            contadorRellenados++;
+            delete mapaFotos[codigoFila]; // La quitamos del mapa para no duplicarla
+            Utilities.sleep(5000);
+            
+          } catch (error) {
+            console.log(`❌ Error inesperado procesando foto en código ${codigoFila}: ${error.toString()}`);
+          }
+        }
+      }
+    }
+  }
+
+  console.log("🚀 Procesando imágenes sobrantes en Drive (Códigos Nuevos que no estaban en la hoja)...");
+  
+  for (const codigoNuevo in mapaFotos) {
+    // Si el código ya estaba en la hoja, lo saltamos (aunque no tuviera foto) para evitar duplicados.
+    if (codigosYaProcesadosEnHoja.includes(codigoNuevo)) continue;
+
+    const fotoNueva = mapaFotos[codigoNuevo];
+    
+    try {
+      const blob = fotoNueva.getBlob();
+      const resultadoLink = subirAImgBBConReintento(blob);
+      
+      const nombreProducto = baseDeDatos[codigoNuevo] ? baseDeDatos[codigoNuevo].nombre : "⚠️ No registrado";
+      const categoriaProducto = baseDeDatos[codigoNuevo] ? baseDeDatos[codigoNuevo].categoria : "";
+      const archivoCortoProducto = baseDeDatos[codigoNuevo] ? baseDeDatos[codigoNuevo].archivoCorto : "";
+      const cantidadBultoProducto = baseDeDatos[codigoNuevo] ? baseDeDatos[codigoNuevo].cantidadBulto : "";
+      
+      const nuevaFilaIndex = hoja.getLastRow() + 1;
+      
+      hoja.appendRow([
+        resultadoLink.startsWith("http") ? `=IMAGE(B${nuevaFilaIndex})` : "", 
+        resultadoLink, 
+        categoriaProducto, 
+        nombreProducto, 
+        archivoCortoProducto, 
+        "", 
+        cantidadBultoProducto, 
+        codigoNuevo
+      ]);
+      
+      if (resultadoLink.startsWith("http")) {
+        hoja.setRowHeight(nuevaFilaIndex, 300);
+        hoja.setColumnWidth(1, 300);
+      }
+      
+      contadorNuevos++;
+      Utilities.sleep(5000);
+      
+    } catch (error) {
+      console.log(`❌ Error procesando foto nueva ${codigoNuevo}: ${error.toString()}`);
+    }
+  }
+
+  actualizarReporteBaseFinal(baseDeDatos, hoja);
+  console.log(`🎉 ¡Proceso completado! Se procesaron ${contadorRellenados} huecos y ${contadorNuevos} filas nuevas.`);
+}
+
+// ==========================================
+// 🌐 CONEXIÓN CON LA INTERFAZ WEB (FRONTEND)
+// ==========================================
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+      .setTitle('Catálogo Mirna')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function ejecutarSincronizacionTotal() {
+  automatizarConversionExcel();
+  procesarFotosDriveAImgBB(); 
+  return "Sincronización total completada con éxito.";
+}
