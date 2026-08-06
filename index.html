@@ -13,23 +13,23 @@
            VARIABLES DE COLOR & ESTILOS GLOBALES
            ========================================== */
         :root {
-            --primary-blue: #801e1e;     /* Color granate/rojo vino de la marca */
-            --soft-blue: #faeaea;        /* Un tono muy suave del mismo color para fondos */
-            --border-blue: #e8caca;      /* Un tono medio para bordes */
-            --text-dark: #2d3436;        /* Un tono oscuro casi negro para texto principal */
-            --text-gray: #636e72;        /* Un gris medio para texto secundario */
-            --bg-page: #f4f7f6;          /* Un fondo de página muy claro y neutro */
-            --bg-white: #ffffff;         /* Blanco puro */
-            --accent-red: #d63031;       /* Un rojo brillante para acentos como observaciones */
-            --admin-purple: #6c5ce7;     /* Un morado para identificar la sección de administrador */
-            --success-green: #27ae60;    /* Un verde para mensajes de éxito */
+            --primary-blue: #801e1e;     
+            --soft-blue: #faeaea;        
+            --border-blue: #e8caca;      
+            --text-dark: #2d3436;        
+            --text-gray: #636e72;        
+            --bg-page: #f4f7f6;          
+            --bg-white: #ffffff;         
+            --accent-red: #d63031;       
+            --admin-purple: #6c5ce7;
+            --success-green: #27ae60;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Poppins', sans-serif; background-color: var(--bg-page); color: var(--text-dark); line-height: 1.6; }
 
         /* ==========================================
-           CABECERA & BOTÓN ADMIN
+           CABECERA & BOTÓN ADMIN (Vista Web)
            ========================================== */
         .web-header {
             display: flex;
@@ -42,7 +42,6 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         }
 
-        /* Espaciador invisible para centrar el logo */
         .header-spacer { width: 45px; } 
 
         .logo-center {
@@ -61,7 +60,6 @@
             text-transform: uppercase; letter-spacing: 1px; margin-top: 5px;
         }
 
-        /* Botón de configuración circular en la esquina */
         .btn-admin-top {
             background: none; border: none; font-size: 24px;
             cursor: pointer; transition: transform 0.2s ease;
@@ -79,7 +77,6 @@
             margin-bottom: 30px;
         }
 
-        /* Nivel 1 Superior: Pestañas de Modo */
         .filter-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; margin-bottom: 15px; }
         .tab-btn {
             background-color: var(--bg-white); color: var(--text-dark); border: 2px solid #dfe6e9;
@@ -89,7 +86,6 @@
         .tab-btn:hover { background-color: #f1f2f6; }
         .tab-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); box-shadow: 0 4px 10px rgba(128,30,30,0.25); }
 
-        /* Nivel 2 Medio: Píldoras de Filtro Dinámico */
         .categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; margin-bottom: 10px; min-height: 40px; }
         .cat-btn {
             background-color: var(--bg-white); color: var(--text-gray); border: 1px solid #dfe6e9;
@@ -99,7 +95,6 @@
         .cat-btn:hover { background-color: var(--soft-blue); color: var(--primary-blue); border-color: var(--border-blue); }
         .cat-btn.active { background-color: var(--primary-blue); color: white; border-color: var(--primary-blue); }
 
-        /* BUSCADOR */
         .search-container {
             width: 100%; max-width: 500px;
             margin-bottom: 20px;
@@ -112,7 +107,6 @@
         }
         .search-input:focus { border-color: var(--primary-blue); box-shadow: 0 4px 10px rgba(128,30,30,0.1); }
 
-        /* Nivel 3 Inferior: Botonera de Acciones */
         .action-bar {
             display: flex; gap: 12px; width: 100%; max-width: 500px;
             justify-content: center; padding-top: 15px; border-top: 1px dashed #dfe6e9;
@@ -160,7 +154,6 @@
         .btn-cancel { background-color: #f1f2f6; color: var(--text-gray); }
         .btn-enter { background-color: var(--primary-blue); color: white; }
 
-        /* Panel de control de administrador, oculto por defecto */
         .admin-panel {
             width: 100%; max-width: 600px; background-color: white; border: 2px dashed var(--admin-purple);
             border-radius: 12px; padding: 20px; margin-top: 20px; display: none; flex-direction: column; gap: 15px;
@@ -181,15 +174,20 @@
         .a4-sheet {
             max-width: 210mm; margin: 0 auto; background-color: var(--bg-white); box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             min-height: 297mm; background-size: cover; background-position: top center; background-repeat: no-repeat; display: flex; flex-direction: column;
-            overflow: hidden; /* Evitar desbordamiento de contenido */
+            overflow: hidden; 
         }
 
-        .catalog-header-img { width: 100%; height: auto; display: block; background-color: var(--soft-blue); }
+        .catalog-header-img { 
+            width: 100%; 
+            height: auto; 
+            display: block; 
+            background-color: var(--soft-blue); 
+        }
+
         .catalog-footer-img { width: 100%; height: auto; display: block; margin-top: auto; background-color: var(--text-dark); }
         .catalog-container { padding: 30px 40px; flex-grow: 1; }
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; }
 
-        /* Adaptabilidad para pantallas más pequeñas */
         @media (max-width: 768px) { 
             .grid { grid-template-columns: repeat(2, 1fr); } 
             .a4-sheet { max-width: 100%; } 
@@ -202,7 +200,6 @@
         }
         @media (max-width: 480px) { .grid { grid-template-columns: 1fr; } }
 
-        /* Estilo de la tarjeta de producto */
         .product-card {
             background: var(--bg-white); border-radius: 12px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); 
             border: 1px solid #f1f2f6; display: flex; flex-direction: column; page-break-inside: avoid;
@@ -220,7 +217,6 @@
         .product-bulto { font-size: 13px; font-weight: 600; color: var(--primary-blue); background-color: var(--soft-blue); padding: 6px 10px; border-radius: 4px; margin-top: auto; border-left: 3px solid var(--primary-blue); }
         .status-message { text-align: center; grid-column: 1 / -1; padding: 40px; color: var(--text-gray); font-size: 16px; }
 
-        /* Estilos específicos para impresión (formato PDF) */
         @media print {
             body { background-color: white; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .web-header, .controls-wrapper, .admin-panel, .modal-overlay, #actionBtnCompartir { display: none !important; }
@@ -312,7 +308,6 @@
     <script>
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSxFbafMVZW4D1uok55e5sZyTcuWIXxDMFHoQuknZeE77l29zWbHmc6CtWps7CKmmAWgfP0maKRIB9e/pub?output=tsv'; 
         
-        // Cabecera única obligatoria para catálogo general y por libro con el link correcto
         const DEFAULT_HEADER_URL = 'https://i.imgur.com/IAWXNIg.jpeg'; 
 
         let allProducts = [];
@@ -462,27 +457,60 @@
             }
         }
 
+        /* 
+         * VERSIÓN MEJORADA DE PARSETSV: 
+         * Filtra duplicados basándose en el SKU para arreglar filas fantasma o saltos de línea de Sheets.
+         */
         function parseTSV(data) {
-            const rows = data.split('\n');
-            allProducts = [];
+            // El replace/\r/g elimina retornos de carro que causan bugs visuales al leer TSV
+            const rows = data.replace(/\r/g, '').split('\n');
+            
             listCategories = new Set();
             listFiles = new Set();
             categorySettings = {}; 
             
+            // Usamos un Map para evitar duplicados. La clave será el SKU.
+            const uniqueProductsMap = new Map();
+
             for(let i = 1; i < rows.length; i++) {
+                if (!rows[i] || rows[i].trim() === '') continue; // Saltar filas vacías
+
                 const cols = rows[i].split('\t');
-                if(cols.length >= 4 && cols[1] !== undefined && cols[1].trim() !== "") {
+                
+                if(cols.length >= 4) {
+                    const skuVal = cols[7] ? cols[7].trim() : '';
+                    const titleVal = cols[3] ? cols[3].trim() : '';
+                    const imageVal = cols[1] ? cols[1].trim() : '';
+                    
+                    // Clave para identificar si el producto ya existe (por SKU, o Título si no hay SKU)
+                    const uniqueKey = skuVal !== '' ? skuVal : titleVal;
+                    
+                    if (uniqueKey === '') continue; // Ignorar por completo si es una línea sin datos clave
+
                     const product = {
-                        image: cols[1] ? cols[1].trim() : '',       
+                        image: imageVal,       
                         category: cols[2] ? cols[2].trim() : '',    
-                        title: cols[3] ? cols[3].trim() : '',       
+                        title: titleVal,       
                         file: cols[4] ? cols[4].trim() : '', 
                         obs: cols[5] ? cols[5].trim() : '',         
                         cantidadBulto: cols[6] ? cols[6].trim() : '', 
-                        sku: cols[7] ? cols[7].trim() : ''          
+                        sku: skuVal          
                     };
-                    allProducts.push(product);
-                    
+
+                    // Lógica de filtrado de duplicados
+                    if (uniqueProductsMap.has(uniqueKey)) {
+                        // Si ya está registrado, verificar si el NUEVO tiene imagen y el VIEJO no
+                        const existingProduct = uniqueProductsMap.get(uniqueKey);
+                        if (!existingProduct.image && product.image) {
+                            // Sobreescribir con el que SÍ tiene imagen
+                            uniqueProductsMap.set(uniqueKey, product);
+                        }
+                    } else {
+                        // Es un producto nuevo, lo agregamos normal
+                        uniqueProductsMap.set(uniqueKey, product);
+                    }
+
+                    // Configuración extra (categorías y temas)
                     if(product.category) listCategories.add(product.category);
                     if(product.file) listFiles.add(product.file);
 
@@ -497,6 +525,9 @@
                     }
                 }
             }
+            
+            // Convertimos el Map de productos únicos de vuelta a nuestra lista principal
+            allProducts = Array.from(uniqueProductsMap.values());
         }
 
         function switchMode(mode) {
@@ -548,7 +579,6 @@
                 applyTheme(value); 
                 filtered = allProducts.filter(p => p.category === value);
             } else if (type === 'file') {
-                // Al filtrar por archivo (libro), se usa el tema general (con la imagen única de cabecera)
                 applyTheme('general'); 
                 filtered = allProducts.filter(p => p.file === value);
             }
@@ -560,12 +590,10 @@
             const header = document.getElementById('catalogHeader');
             const footer = document.getElementById('catalogFooter');
             
-            // Siempre por defecto el link solicitado
             let headerSrc = DEFAULT_HEADER_URL;
             let footerSrc = 'pie_local.jpg';
             let bgImg = 'none';
 
-            // Si hay una configuración específica en la categoría para el header, footer o background, lo aplica
             if (category !== 'general' && categorySettings[category]) {
                 if (categorySettings[category].header) headerSrc = categorySettings[category].header;
                 if (categorySettings[category].footer) footerSrc = categorySettings[category].footer;
@@ -619,7 +647,7 @@
             } else if (currentMode === 'archivo' && currentFilterValue !== '') {
                 shareUrl += "&type=file&val=" + encodeURIComponent(currentFilterValue);
             } else if (currentMode === 'general') {
-                // Comparte catálogo completo general
+                // Comparte general
             } else {
                 alert("⚠️ Primero selecciona la categoría o archivo específico que deseas compartir.");
                 return;
@@ -659,7 +687,7 @@
                     })
                     [functionName](); 
             } else {
-                statusDiv.innerHTML = `⚠️ <b>Error de Entorno:</b> La web debe estar desplegada como una 'Aplicación Web' dentro de Google Apps Script para usar las herramientas internas.`;
+                statusDiv.innerHTML = `⚠️ <b>Error de Entorno:</b> La web debe estar desplegada como una 'Aplicación Web' dentro de Google Apps Script.`;
             }
         }
     </script>
